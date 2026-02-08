@@ -78,8 +78,8 @@ function SkillNodeMesh({
   const baseSize = node.size * 0.4;
   const scale = isSelected ? 1.8 : isHovered ? 1.4 : isConnected ? 1.2 : 1;
   
-  // Get health-based config
-  const healthConfig = HEALTH_CONFIG[node.health];
+  // Get health-based config (fallback to healthy if undefined)
+  const healthConfig = HEALTH_CONFIG[node.health || 'healthy'] || HEALTH_CONFIG.healthy;
   const emissiveColor = healthConfig.emissiveColor || node.color;
   
   useFrame((state) => {
