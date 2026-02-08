@@ -329,7 +329,7 @@ program
     const encoded = Buffer.from(jsonData).toString('base64url');
     
     // Check if data is too large for URL (browsers typically support ~2KB-8KB in URL)
-    const VIZ_URL = 'https://skillrespec.vercel.app';
+    const VIZ_URL = 'https://viz-gold.vercel.app';
     
     if (encoded.length > 8000) {
       console.log(`⚠️  Data too large for URL (${Math.round(encoded.length / 1024)}KB)`);

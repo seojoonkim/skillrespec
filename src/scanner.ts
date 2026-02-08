@@ -42,26 +42,34 @@ async function parseSkill(path: string, name: string): Promise<Skill | null> {
 
     let description: string | undefined;
     let version: string | undefined;
+    let totalSize = 0;
+    let skillMdContent = '';
 
     try {
       const pkgContent = await readFile(pkgPath, 'utf-8');
       const pkg = JSON.parse(pkgContent);
       description = pkg.description;
       version = pkg.version;
+      totalSize += Buffer.byteLength(pkgContent, 'utf-8');
     } catch {
       // No package.json
     }
 
     try {
-      const skillMd = await readFile(skillMdPath, 'utf-8');
+      skillMdContent = await readFile(skillMdPath, 'utf-8');
+      totalSize += Buffer.byteLength(skillMdContent, 'utf-8');
       // Extract first line as description if no package.json
       if (!description) {
-        const firstLine = skillMd.split('\n').find(l => l.trim() && !l.startsWith('#'));
+        const firstLine = skillMdContent.split('\n').find(l => l.trim() && !l.startsWith('#'));
         description = firstLine?.trim();
       }
     } catch {
       // No SKILL.md
     }
+
+    // Calculate total directory size (approximation)
+    const dirSize = await getDirectorySize(path);
+    totalSize = Math.max(totalSize, dirSize);
 
     const stats = await stat(path);
 
@@ -70,11 +78,32 @@ async function parseSkill(path: string, name: string): Promise<Skill | null> {
       path,
       version,
       description,
+      size: totalSize,
+      estimatedTokens: Math.round(totalSize / 4), // ~4 chars per token approximation
       lastModified: stats.mtime,
     };
   } catch {
     return null;
   }
+}
+
+async function getDirectorySize(dirPath: string): Promise<number> {
+  let totalSize = 0;
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = join(dirPath, entry.name);
+      if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.json') || entry.name.endsWith('.ts') || entry.name.endsWith('.js'))) {
+        const stats = await stat(entryPath);
+        totalSize += stats.size;
+      } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+        totalSize += await getDirectorySize(entryPath);
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+  return totalSize;
 }
 
 export function formatScanResult(result: ScanResult): string {
