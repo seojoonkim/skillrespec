@@ -21,6 +21,7 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import AIRecommendations from './components/AIRecommendations';
 import HistoryPanel from './components/HistoryPanel';
 import UpdatesPanel from './components/UpdatesPanel';
+import CreatePanel from './components/CreatePanel';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
@@ -214,7 +215,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTools, setShowTools] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health' | 'history'>('categories');
-  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'ai' | 'marketplace' | 'presets' | 'lint' | 'team' | 'analytics' | 'updates'>('recommend');
+  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'ai' | 'marketplace' | 'presets' | 'lint' | 'team' | 'analytics' | 'updates' | 'create'>('recommend');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
 
@@ -710,6 +711,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                     { id: 'team', label: '👥', title: 'Team Sync' },
                     { id: 'analytics', label: '📊', title: 'Analytics' },
                     { id: 'updates', label: '🔄', title: 'Updates' },
+                    { id: 'create', label: '🛠️', title: 'Create Skill' },
                   ].map(({ id, label, title }) => (
                     <button
                       key={id}
@@ -747,6 +749,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                   {rightPanelTab === 'team' && <TeamPanel activeSkills={data.nodes} embedded />}
                   {rightPanelTab === 'analytics' && <AnalyticsPanel nodes={data.nodes} embedded />}
                   {rightPanelTab === 'updates' && <UpdatesPanel skills={data.nodes} embedded />}
+                  {rightPanelTab === 'create' && <CreatePanel embedded />}
                 </div>
               </div>
             )}

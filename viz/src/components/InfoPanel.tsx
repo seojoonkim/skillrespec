@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { theme } from '../styles/theme';
+import ReviewsSection from './ReviewsSection';
 import type { SkillNode, SkillEdge, VizMetrics } from '../types';
 
 interface InfoPanelProps {
@@ -99,6 +100,8 @@ function SimilarSkillChip({ name, similarity, color }: {
 
 // Bottom fixed panel - clean, modern design
 export default function InfoPanel({ node, allNodes, edges, onClose, mobile = false }: InfoPanelProps) {
+  const [showReviews, setShowReviews] = useState(false);
+  
   const { connectedNodes, overlapScore } = useMemo(() => {
     if (!node) return { connectedNodes: [], overlapScore: 0 };
     
@@ -286,36 +289,89 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
         </div>
       )}
 
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        style={{
+      {/* Top buttons */}
+      <div style={{
+        position: 'absolute',
+        top: '12px',
+        right: '16px',
+        display: 'flex',
+        gap: '8px',
+      }}>
+        {/* Reviews toggle */}
+        {!mobile && (
+          <button
+            onClick={() => setShowReviews(!showReviews)}
+            style={{
+              background: showReviews ? theme.colors.bgElevated : theme.colors.bgTertiary,
+              border: `1px solid ${showReviews ? theme.colors.textMuted : theme.colors.border}`,
+              borderRadius: theme.radius.full,
+              color: showReviews ? theme.colors.textPrimary : theme.colors.textMuted,
+              fontSize: '12px',
+              cursor: 'pointer',
+              padding: '6px 10px',
+              transition: theme.transitions.fast,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            ⭐ Reviews
+          </button>
+        )}
+        
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            background: theme.colors.bgTertiary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radius.full,
+            color: theme.colors.textMuted,
+            fontSize: '14px',
+            cursor: 'pointer',
+            padding: '6px 10px',
+            transition: theme.transitions.fast,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = theme.colors.borderHover;
+            e.currentTarget.style.color = theme.colors.textPrimary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = theme.colors.border;
+            e.currentTarget.style.color = theme.colors.textMuted;
+          }}
+        >
+          ✕
+        </button>
+      </div>
+      
+      {/* Reviews Section - Expandable */}
+      {showReviews && !mobile && (
+        <div style={{
           position: 'absolute',
-          top: '12px',
-          right: '16px',
-          background: theme.colors.bgTertiary,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.radius.full,
-          color: theme.colors.textMuted,
-          fontSize: '14px',
-          cursor: 'pointer',
-          padding: '6px 10px',
-          transition: theme.transitions.fast,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.borderHover;
-          e.currentTarget.style.color = theme.colors.textPrimary;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.border;
-          e.currentTarget.style.color = theme.colors.textMuted;
-        }}
-      >
-        ✕
-      </button>
+          bottom: '100%',
+          left: 0,
+          right: 0,
+          maxHeight: '300px',
+          overflow: 'auto',
+          background: theme.colors.bgSecondary,
+          borderTop: `1px solid ${theme.colors.border}`,
+          borderLeft: `1px solid ${theme.colors.border}`,
+          borderRight: `1px solid ${theme.colors.border}`,
+          borderTopLeftRadius: theme.radius.lg,
+          borderTopRightRadius: theme.radius.lg,
+          padding: '16px',
+        }}>
+          <ReviewsSection
+            skillId={node.id}
+            skillName={node.name}
+            compact
+          />
+        </div>
+      )}
     </div>
   );
 }

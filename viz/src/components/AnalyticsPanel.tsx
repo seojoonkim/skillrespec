@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// Analytics Panel - Usage Dashboard with Charts
+// Analytics Panel - Usage Dashboard with Charts + Insights
 // ═══════════════════════════════════════════════════════════
 
 import { useState, useMemo } from 'react';
@@ -14,9 +14,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
 } from 'recharts';
 import { theme } from '../styles/theme';
-import { generateUsageStats, getCategoryUsage, type UsageStats } from '../lib/usageData';
+import { generateUsageStats, getCategoryUsage, type UsageStats, type SkillUsage } from '../lib/usageData';
 import type { SkillNode } from '../types';
 
 // ═══════════════════════════════════════════════════════════
@@ -191,7 +193,7 @@ interface AnalyticsPanelProps {
 }
 
 export default function AnalyticsPanel({ nodes, embedded = false }: AnalyticsPanelProps) {
-  const [activeChart, setActiveChart] = useState<'usage' | 'trend' | 'errors'>('usage');
+  const [activeChart, setActiveChart] = useState<'usage' | 'trend' | 'errors' | 'insights'>('usage');
   
   // Generate mock usage data
   const stats: UsageStats = useMemo(() => generateUsageStats(nodes), [nodes]);
@@ -279,6 +281,7 @@ export default function AnalyticsPanel({ nodes, embedded = false }: AnalyticsPan
         display: 'flex',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
+        overflowX: 'auto',
       }}>
         <Tab active={activeChart === 'usage'} onClick={() => setActiveChart('usage')}>
           📊 Usage
@@ -288,6 +291,9 @@ export default function AnalyticsPanel({ nodes, embedded = false }: AnalyticsPan
         </Tab>
         <Tab active={activeChart === 'errors'} onClick={() => setActiveChart('errors')}>
           ⚠️ Errors
+        </Tab>
+        <Tab active={activeChart === 'insights'} onClick={() => setActiveChart('insights')}>
+          💡 Insights
         </Tab>
       </div>
 
@@ -573,7 +579,434 @@ export default function AnalyticsPanel({ nodes, embedded = false }: AnalyticsPan
             )}
           </div>
         )}
+
+        {activeChart === 'insights' && (
+          <InsightsSection stats={stats} nodes={nodes} />
+        )}
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Insights Section Component
+// ═══════════════════════════════════════════════════════════
+
+interface InsightsSectionProps {
+  stats: UsageStats;
+  nodes: SkillNode[];
+}
+
+function InsightsSection({ stats, nodes }: InsightsSectionProps) {
+  // Calculate insights
+  const insights = useMemo(() => {
+    const sortedByUsage = [...stats.skillUsage].sort((a, b) => b.invocations - a.invocations);
+    const top5 = sortedByUsage.slice(0, 5);
+    
+    // Unused skills (less than 5 invocations in 7 days)
+    const unusedSkills = stats.skillUsage.filter(s => s.invocations < 5);
+    
+    // Calculate potential space savings (mock: 50-500KB per skill)
+    const totalSavings = unusedSkills.reduce((sum, s) => {
+      // Use skill name length as seed for consistent mock size
+      const mockSize = 50 + (s.skillName.length * 17) % 450;
+      return sum + mockSize;
+    }, 0);
+    
+    // Get skills that might need attention
+    const slowSkills = stats.skillUsage.filter(s => s.avgResponseTime > 300);
+    const errorProneSkills = stats.skillUsage.filter(s => s.errorRate > 3);
+    
+    // Weekly report summary
+    const weeklyStats = {
+      totalCalls: stats.totalInvocations,
+      avgCallsPerDay: Math.round(stats.totalInvocations / 7),
+      mostActiveDay: stats.dailyTrend.reduce((max, d) => 
+        d.invocations > max.invocations ? d : max
+      ),
+      improvement: Math.round((Math.random() * 20) - 5), // Mock: -5% to +15%
+    };
+    
+    return { top5, unusedSkills, totalSavings, slowSkills, errorProneSkills, weeklyStats };
+  }, [stats, nodes]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Top 5 Most Used */}
+      <div>
+        <div style={{
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
+          color: theme.colors.textPrimary,
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}>
+          🏆 Top 5 Most Used Skills
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {insights.top5.map((skill, i) => (
+            <div
+              key={skill.skillId}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: theme.colors.bgTertiary,
+                borderRadius: theme.radius.md,
+                gap: '10px',
+              }}
+            >
+              <span style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: theme.radius.full,
+                background: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7c32' : theme.colors.bgSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: theme.fontSize.xs,
+                fontWeight: theme.fontWeight.bold,
+                color: i < 3 ? theme.colors.bgPrimary : theme.colors.textMuted,
+              }}>
+                {i + 1}
+              </span>
+              <span style={{
+                flex: 1,
+                fontSize: theme.fontSize.sm,
+                color: theme.colors.textPrimary,
+              }}>
+                {skill.skillName}
+              </span>
+              <span style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textMuted,
+                fontFamily: theme.fonts.mono,
+              }}>
+                {skill.invocations.toLocaleString()} calls
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Unused Skills */}
+      {insights.unusedSkills.length > 0 && (
+        <div>
+          <div style={{
+            fontSize: theme.fontSize.sm,
+            fontWeight: theme.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            💤 Installed but Rarely Used
+            <span style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              fontWeight: theme.fontWeight.normal,
+            }}>
+              ({insights.unusedSkills.length})
+            </span>
+          </div>
+          <div style={{
+            background: theme.colors.bgTertiary,
+            borderRadius: theme.radius.md,
+            padding: '12px',
+          }}>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6px',
+              marginBottom: '10px',
+            }}>
+              {insights.unusedSkills.slice(0, 6).map(skill => (
+                <span
+                  key={skill.skillId}
+                  style={{
+                    padding: '4px 8px',
+                    background: theme.colors.bgSecondary,
+                    borderRadius: theme.radius.full,
+                    fontSize: theme.fontSize.xs,
+                    color: theme.colors.textMuted,
+                  }}
+                >
+                  {skill.skillName}
+                </span>
+              ))}
+              {insights.unusedSkills.length > 6 && (
+                <span style={{
+                  padding: '4px 8px',
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.textMuted,
+                }}>
+                  +{insights.unusedSkills.length - 6} more
+                </span>
+              )}
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textSecondary,
+            }}>
+              💡 Less than 5 uses in the last 7 days
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Space Savings Suggestion */}
+      {insights.totalSavings > 0 && (
+        <div style={{
+          background: `linear-gradient(135deg, ${theme.colors.success}10, ${theme.colors.success}05)`,
+          border: `1px solid ${theme.colors.success}30`,
+          borderRadius: theme.radius.md,
+          padding: '14px',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '8px',
+          }}>
+            <span style={{ fontSize: '20px' }}>🧹</span>
+            <div>
+              <div style={{
+                fontSize: theme.fontSize.sm,
+                fontWeight: theme.fontWeight.semibold,
+                color: theme.colors.success,
+              }}>
+                Optimization Suggestion
+              </div>
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                Remove {insights.unusedSkills.length} unused skills to save ~{formatBytes(insights.totalSavings * 1024)}
+              </div>
+            </div>
+          </div>
+          <button
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: theme.colors.success + '20',
+              border: `1px solid ${theme.colors.success}40`,
+              borderRadius: theme.radius.md,
+              color: theme.colors.success,
+              fontSize: theme.fontSize.xs,
+              fontWeight: theme.fontWeight.medium,
+              cursor: 'pointer',
+              transition: theme.transitions.fast,
+            }}
+          >
+            Review & Clean Up
+          </button>
+        </div>
+      )}
+
+      {/* Performance Alerts */}
+      {(insights.slowSkills.length > 0 || insights.errorProneSkills.length > 0) && (
+        <div>
+          <div style={{
+            fontSize: theme.fontSize.sm,
+            fontWeight: theme.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            ⚡ Performance Alerts
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {insights.slowSkills.slice(0, 3).map(skill => (
+              <div
+                key={skill.skillId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  background: theme.colors.warning + '10',
+                  border: `1px solid ${theme.colors.warning}30`,
+                  borderRadius: theme.radius.md,
+                  gap: '8px',
+                }}
+              >
+                <span style={{ color: theme.colors.warning }}>🐢</span>
+                <span style={{
+                  flex: 1,
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.textPrimary,
+                }}>
+                  {skill.skillName}
+                </span>
+                <span style={{
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.warning,
+                  fontFamily: theme.fonts.mono,
+                }}>
+                  {skill.avgResponseTime}ms
+                </span>
+              </div>
+            ))}
+            {insights.errorProneSkills.slice(0, 2).map(skill => (
+              <div
+                key={skill.skillId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  background: theme.colors.error + '10',
+                  border: `1px solid ${theme.colors.error}30`,
+                  borderRadius: theme.radius.md,
+                  gap: '8px',
+                }}
+              >
+                <span style={{ color: theme.colors.error }}>⚠️</span>
+                <span style={{
+                  flex: 1,
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.textPrimary,
+                }}>
+                  {skill.skillName}
+                </span>
+                <span style={{
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.error,
+                  fontFamily: theme.fonts.mono,
+                }}>
+                  {skill.errorRate.toFixed(1)}% errors
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Weekly Report */}
+      <div style={{
+        background: theme.colors.bgTertiary,
+        borderRadius: theme.radius.md,
+        padding: '14px',
+      }}>
+        <div style={{
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
+          color: theme.colors.textPrimary,
+          marginBottom: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}>
+          📅 Weekly Report Summary
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '10px',
+        }}>
+          <div>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              marginBottom: '4px',
+            }}>
+              Total Calls
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.lg,
+              fontWeight: theme.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              fontFamily: theme.fonts.mono,
+            }}>
+              {insights.weeklyStats.totalCalls.toLocaleString()}
+            </div>
+          </div>
+          <div>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              marginBottom: '4px',
+            }}>
+              Avg/Day
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.lg,
+              fontWeight: theme.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              fontFamily: theme.fonts.mono,
+            }}>
+              {insights.weeklyStats.avgCallsPerDay.toLocaleString()}
+            </div>
+          </div>
+          <div>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              marginBottom: '4px',
+            }}>
+              Most Active
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.md,
+              fontWeight: theme.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              {insights.weeklyStats.mostActiveDay.date}
+            </div>
+          </div>
+          <div>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              marginBottom: '4px',
+            }}>
+              vs Last Week
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.md,
+              fontWeight: theme.fontWeight.semibold,
+              color: insights.weeklyStats.improvement >= 0 
+                ? theme.colors.success 
+                : theme.colors.error,
+            }}>
+              {insights.weeklyStats.improvement >= 0 ? '+' : ''}
+              {insights.weeklyStats.improvement}%
+            </div>
+          </div>
+        </div>
+        <button
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '8px',
+            background: 'transparent',
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radius.md,
+            color: theme.colors.textSecondary,
+            fontSize: theme.fontSize.xs,
+            fontWeight: theme.fontWeight.medium,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: theme.transitions.fast,
+          }}
+        >
+          📊 Generate Full Report
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Utility function for formatting bytes
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
