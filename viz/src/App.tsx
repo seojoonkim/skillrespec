@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
-import { EffectComposer, Bloom, ChromaticAberration, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import SkillNodes from './components/SkillNodes';
 import ConnectionLines from './components/ConnectionLines';
@@ -12,21 +12,15 @@ import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
 import LanguageSelector from './components/LanguageSelector';
 import DiagnosticReportModal from './components/DiagnosticReportModal';
+import ViewModeTabs, { type ViewMode } from './components/ViewModeTabs';
+import ReportView from './components/ReportView';
 import { useWindowSize } from './hooks/useWindowSize';
 import { useTranslation } from './i18n/useTranslation';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
 
-// Get grade info from health score
-function getGradeInfo(score: number, t: ReturnType<typeof useTranslation>['t']) {
-  if (score >= 80) return { text: t.header.grade.excellent, color: '#10b981' };
-  if (score >= 65) return { text: t.header.grade.good, color: '#22c55e' };
-  if (score >= 50) return { text: t.header.grade.average, color: '#f59e0b' };
-  return { text: t.header.grade.poor, color: '#ef4444' };
-}
-
 // ═══════════════════════════════════════════════════════════
-// Header Stat Component (Improved with labels)
+// Header Stat Component - Clean, flat design
 // ═══════════════════════════════════════════════════════════
 function HeaderStat({ 
   icon, 
@@ -51,9 +45,9 @@ function HeaderStat({
         alignItems: 'center',
         gap: '2px',
         padding: '8px 12px',
-        background: `${color}12`,
-        border: `1px solid ${color}30`,
-        borderRadius: '10px',
+        background: '#141414',
+        border: '1px solid #262626',
+        borderRadius: '8px',
         minWidth: '56px',
       }}>
         <span style={{ fontSize: '14px' }}>{icon}</span>
@@ -84,9 +78,9 @@ function HeaderStat({
       alignItems: 'center',
       gap: '4px',
       padding: '12px 18px',
-      background: `${color}10`,
-      border: `1px solid ${color}25`,
-      borderRadius: '12px',
+      background: '#141414',
+      border: '1px solid #262626',
+      borderRadius: '10px',
       minWidth: '90px',
     }}>
       <span style={{ fontSize: '18px', marginBottom: '2px' }}>{icon}</span>
@@ -122,6 +116,14 @@ function HeaderStat({
   );
 }
 
+// Get grade info from health score
+function getGradeInfo(score: number, t: ReturnType<typeof useTranslation>['t']) {
+  if (score >= 80) return { text: t.header.grade.excellent, color: '#10b981' };
+  if (score >= 65) return { text: t.header.grade.good, color: '#22c55e' };
+  if (score >= 50) return { text: t.header.grade.average, color: '#f59e0b' };
+  return { text: t.header.grade.poor, color: '#ef4444' };
+}
+
 // ═══════════════════════════════════════════════════════════
 // Mobile Bottom Nav Toggle
 // ═══════════════════════════════════════════════════════════
@@ -145,7 +147,7 @@ function MobileNavToggle({
       gap: '8px',
       padding: '12px 16px',
       paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-      background: 'linear-gradient(180deg, transparent 0%, rgba(5,5,8,0.95) 30%)',
+      background: 'linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.98) 30%)',
       zIndex: 200,
     }}>
       <button
@@ -154,12 +156,10 @@ function MobileNavToggle({
           flex: 1,
           maxWidth: '140px',
           padding: '12px 16px',
-          background: activePanel === 'categories' 
-            ? 'rgba(0,255,255,0.2)' 
-            : 'rgba(255,255,255,0.05)',
-          border: `1px solid ${activePanel === 'categories' ? 'rgba(0,255,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: '12px',
-          color: activePanel === 'categories' ? '#00ffff' : '#888',
+          background: activePanel === 'categories' ? '#1a2e1a' : '#141414',
+          border: `1px solid ${activePanel === 'categories' ? '#10b981' : '#262626'}`,
+          borderRadius: '10px',
+          color: activePanel === 'categories' ? '#10b981' : '#888',
           fontSize: '12px',
           fontWeight: 600,
           fontFamily: '"Plus Jakarta Sans", sans-serif',
@@ -178,12 +178,10 @@ function MobileNavToggle({
           flex: 1,
           maxWidth: '140px',
           padding: '12px 16px',
-          background: activePanel === 'recommendations' 
-            ? 'rgba(255,0,255,0.2)' 
-            : 'rgba(255,255,255,0.05)',
-          border: `1px solid ${activePanel === 'recommendations' ? 'rgba(255,0,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: '12px',
-          color: activePanel === 'recommendations' ? '#ff00ff' : '#888',
+          background: activePanel === 'recommendations' ? '#1a2e1a' : '#141414',
+          border: `1px solid ${activePanel === 'recommendations' ? '#10b981' : '#262626'}`,
+          borderRadius: '10px',
+          color: activePanel === 'recommendations' ? '#10b981' : '#888',
           fontSize: '12px',
           fontWeight: 600,
           fontFamily: '"Plus Jakarta Sans", sans-serif',
@@ -211,6 +209,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'categories' | 'recommendations'>('none');
   const [showReport, setShowReport] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('3d');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
   const { t } = useTranslation();
@@ -238,6 +237,18 @@ export default function App() {
   }, [data]);
   
   const gradeInfo = useMemo(() => getGradeInfo(healthScore, t), [healthScore, t]);
+
+  // Current datetime for report header
+  const currentDateTime = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -290,170 +301,67 @@ export default function App() {
       width: '100vw', 
       height: '100vh', 
       position: 'relative',
-      background: '#050508',
+      background: '#0a0a0a',
       overflow: 'hidden',
     }}>
-      {/* 3D Canvas - Responsive Height */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: isMobile ? '60px' : 0,
-      }}>
-        <Canvas
-          camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
-          gl={{ 
-            antialias: true, 
-            alpha: false,
-            powerPreference: 'high-performance',
-          }}
-          style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #050508 100%)' }}
-          dpr={[1, isMobile ? 1.5 : 2]}
-        >
-          <Suspense fallback={null}>
-            {/* Lighting */}
-            <ambientLight intensity={0.2} />
-            <pointLight position={[15, 15, 15]} intensity={0.8} color="#00ffff" />
-            <pointLight position={[-15, -15, -15]} intensity={0.4} color="#ff00ff" />
-            <pointLight position={[0, 0, 20]} intensity={0.3} color="#ffffff" />
-            
-            {/* Star Background */}
-            <Stars 
-              radius={150} 
-              depth={80} 
-              count={isMobile ? 4000 : 8000} 
-              factor={5} 
-              saturation={0.2} 
-              fade 
-              speed={0.5}
-            />
-            
-            {/* Ambient Particles - Reduced on mobile */}
-            <ParticleField count={isMobile ? 150 : 300} color="#00ffff" size={0.02} speed={0.1} radius={25} />
-            {!isMobile && <ParticleField count={200} color="#ff00ff" size={0.015} speed={0.15} radius={20} />}
-            
-            {/* Skill Nodes */}
-            <SkillNodes 
-              nodes={filteredNodes}
-              selectedNode={selectedNode}
-              hoveredNode={hoveredNode}
-              onSelect={setSelectedNode}
-              onHover={setHoveredNode}
-            />
-            
-            {/* Connection Lines */}
-            <ConnectionLines 
-              edges={filteredEdges}
-              nodes={data.nodes}
-              selectedNode={selectedNode}
-              hoveredNode={hoveredNode}
-            />
-            
-            {/* Controls */}
-            <OrbitControls 
-              enablePan={!isMobile}
-              enableZoom={true}
-              enableRotate={true}
-              autoRotate={!selectedNode && !hoveredNode}
-              autoRotateSpeed={0.3}
-              maxDistance={isMobile ? 60 : 50}
-              minDistance={isMobile ? 10 : 5}
-              dampingFactor={0.05}
-              enableDamping
-              target={[center.x, center.y, center.z]}
-              touches={{
-                ONE: 1, // ROTATE
-                TWO: 512, // DOLLY_PAN
-              }}
-            />
-            
-            {/* Post-processing Effects - Reduced on mobile */}
-            <EffectComposer>
-              <Bloom 
-                luminanceThreshold={0.1}
-                luminanceSmoothing={0.9}
-                intensity={isMobile ? 1.5 : 2}
-                mipmapBlur
-              />
-              {!isMobile && (
-                <ChromaticAberration
-                  blendFunction={BlendFunction.NORMAL}
-                  offset={[0.0003, 0.0003]}
-                />
-              )}
-              <Vignette
-                offset={0.3}
-                darkness={isMobile ? 0.5 : 0.7}
-                blendFunction={BlendFunction.NORMAL}
-              />
-            </EffectComposer>
-          </Suspense>
-        </Canvas>
-      </div>
-      
       {/* ═══════════════════════════════════════════════════════════
-          HEADER - Responsive & Improved
+          HEADER - 보고서 스타일 (Clean, flat design)
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        background: 'linear-gradient(180deg, rgba(5,5,8,0.98) 0%, rgba(5,5,8,0) 100%)',
-        padding: isMobile ? '12px' : '16px 24px',
-        zIndex: 100,
+        background: '#0a0a0a',
+        borderBottom: '1px solid #262626',
+        zIndex: 900,
       }}>
-        {/* Top Row: Logo + Language + Report */}
+        {/* Title Bar */}
         <div style={{
+          padding: isMobile ? '12px 16px' : '16px 24px',
+          borderBottom: '1px solid #1a1a1a',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: isMobile ? '12px' : '16px',
         }}>
-          {/* Left: Logo */}
+          {/* Left: Logo + Title */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: isMobile ? '8px' : '14px',
+            gap: isMobile ? '10px' : '14px',
           }}>
             <div style={{
-              width: isMobile ? '36px' : '44px',
-              height: isMobile ? '36px' : '44px',
-              borderRadius: isMobile ? '10px' : '12px',
-              background: 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              width: isMobile ? '32px' : '40px',
+              height: isMobile ? '32px' : '40px',
+              borderRadius: '10px',
+              background: '#141414',
+              border: '1px solid #262626',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: isMobile ? '18px' : '22px',
-              boxShadow: '0 0 30px rgba(0,255,255,0.2)',
+              fontSize: isMobile ? '16px' : '20px',
             }}>
-              ⚔️
+              📊
             </div>
             <div>
               <h1 style={{ 
-                fontSize: isMobile ? '18px' : '24px', 
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #ffff00 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                fontSize: isMobile ? '16px' : '20px', 
+                fontWeight: 700,
+                color: '#fff',
                 margin: 0,
                 letterSpacing: '-0.02em',
                 fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
-                SkillRespec
+                {t.diagnosis.title.replace('📊 ', '')}
               </h1>
-              {!isMobile && (
-                <p style={{ 
-                  fontSize: '11px', 
-                  color: '#555', 
-                  marginTop: '2px',
-                  fontFamily: '"JetBrains Mono", monospace',
-                }}>
-                  {t.header.subtitle}
-                </p>
-              )}
+              <p style={{ 
+                fontSize: '11px', 
+                color: '#666', 
+                marginTop: '2px',
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+              }}>
+                {t.diagnosis.target}: Simon · {currentDateTime}
+              </p>
             </div>
           </div>
 
@@ -466,68 +374,52 @@ export default function App() {
             <LanguageSelector compact={isMobile} />
             
             {!isMobile && (
-              <>
-                <button
-                  onClick={() => setShowReport(true)}
-                  style={{
-                    padding: isTablet ? '6px 12px' : '8px 16px',
-                    background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.25) 0%, rgba(255,0,255,0.25) 100%)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  📊 {t.header.report}
-                </button>
-                
-                <button style={{
-                  padding: isTablet ? '6px 12px' : '8px 16px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+              <button
+                onClick={() => setShowReport(true)}
+                style={{
+                  padding: '8px 14px',
+                  background: '#141414',
+                  border: '1px solid #262626',
                   borderRadius: '8px',
                   color: '#888',
                   fontSize: '12px',
                   fontWeight: 600,
                   fontFamily: '"Plus Jakarta Sans", sans-serif',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}>
-                  📤 {t.header.export}
-                </button>
-              </>
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#1a1a1a';
+                  e.currentTarget.style.borderColor = '#10b981';
+                  e.currentTarget.style.color = '#10b981';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#141414';
+                  e.currentTarget.style.borderColor = '#262626';
+                  e.currentTarget.style.color = '#888';
+                }}
+              >
+                📄 {t.header.report}
+              </button>
             )}
             
             {isMobile && (
               <button
                 onClick={() => setShowReport(true)}
                 style={{
-                  padding: '6px 10px',
-                  background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  padding: '8px',
+                  background: '#141414',
+                  border: '1px solid #262626',
                   borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontWeight: 600,
+                  color: '#888',
+                  fontSize: '14px',
                   cursor: 'pointer',
                 }}
               >
-                📊
+                📄
               </button>
             )}
           </div>
@@ -535,9 +427,11 @@ export default function App() {
 
         {/* Metrics Row */}
         <div style={{
+          padding: isMobile ? '12px 16px' : '14px 24px',
+          borderBottom: '1px solid #1a1a1a',
           display: 'flex',
           justifyContent: 'center',
-          gap: isMobile ? '8px' : '16px',
+          gap: isMobile ? '8px' : '14px',
         }}>
           <HeaderStat 
             icon="🏥" 
@@ -551,113 +445,278 @@ export default function App() {
             icon="📦" 
             value={data.nodes.length}
             label={t.header.skills}
-            color="#00ffff"
+            color="#10b981"
             compact={isMobile}
           />
           <HeaderStat 
             icon="🔗" 
             value={data.edges.length}
             label={t.header.connections}
-            color="#ff00ff"
+            color="#10b981"
+            compact={isMobile}
+          />
+        </div>
+
+        {/* View Mode Tabs */}
+        <div style={{
+          padding: isMobile ? '10px 16px' : '12px 24px',
+          display: 'flex',
+          justifyContent: 'center',
+        }}>
+          <ViewModeTabs
+            activeMode={viewMode}
+            onModeChange={setViewMode}
             compact={isMobile}
           />
         </div>
       </div>
-      
+
       {/* ═══════════════════════════════════════════════════════════
-          LEFT PANEL - Categories (Desktop & Tablet only)
+          MAIN CONTENT AREA
       ═══════════════════════════════════════════════════════════ */}
-      {!isMobile && (
-        <CategoryLegend 
-          clusters={data.clusters}
-          selectedCategory={selectedCategory}
-          onSelect={setSelectedCategory}
-          compact={isTablet}
-        />
-      )}
-      
-      {/* ═══════════════════════════════════════════════════════════
-          RIGHT PANEL - Recommendations (Desktop only)
-      ═══════════════════════════════════════════════════════════ */}
-      {isDesktop && <RecommendationsPanel />}
-      
-      {/* ═══════════════════════════════════════════════════════════
-          BOTTOM PANEL - Recommendations (Tablet)
-      ═══════════════════════════════════════════════════════════ */}
-      {isTablet && <RecommendationsPanel position="bottom" />}
-      
-      {/* ═══════════════════════════════════════════════════════════
-          MOBILE PANELS - Slide-up sheets
-      ═══════════════════════════════════════════════════════════ */}
-      {isMobile && mobilePanel === 'categories' && (
-        <div style={{
-          position: 'fixed',
-          bottom: '60px',
-          left: 0,
-          right: 0,
-          background: 'rgba(10, 10, 18, 0.98)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '20px 20px 0 0',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderBottom: 'none',
-          maxHeight: '50vh',
-          overflowY: 'auto',
-          zIndex: 150,
-          animation: 'slideUp 0.3s ease-out',
-        }}>
-          <CategoryLegend 
-            clusters={data.clusters}
+      <div style={{
+        position: 'absolute',
+        top: isMobile ? '175px' : '210px',
+        left: 0,
+        right: 0,
+        bottom: isMobile ? '60px' : 0,
+      }}>
+        {viewMode === '3d' ? (
+          <>
+            {/* 3D Canvas */}
+            <Canvas
+              camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
+              gl={{ 
+                antialias: true, 
+                alpha: false,
+                powerPreference: 'high-performance',
+              }}
+              style={{ background: '#0a0a0a' }}
+              dpr={[1, isMobile ? 1.5 : 2]}
+            >
+              <Suspense fallback={null}>
+                {/* Lighting - Simplified */}
+                <ambientLight intensity={0.4} />
+                <pointLight position={[15, 15, 15]} intensity={0.6} color="#ffffff" />
+                <pointLight position={[-15, -15, -15]} intensity={0.3} color="#ffffff" />
+                
+                {/* Star Background - Subtle */}
+                <Stars 
+                  radius={150} 
+                  depth={80} 
+                  count={isMobile ? 2000 : 4000} 
+                  factor={4} 
+                  saturation={0} 
+                  fade 
+                  speed={0.3}
+                />
+                
+                {/* Ambient Particles - Reduced */}
+                <ParticleField count={isMobile ? 80 : 150} color="#10b981" size={0.015} speed={0.08} radius={25} />
+                
+                {/* Skill Nodes */}
+                <SkillNodes 
+                  nodes={filteredNodes}
+                  selectedNode={selectedNode}
+                  hoveredNode={hoveredNode}
+                  onSelect={setSelectedNode}
+                  onHover={setHoveredNode}
+                />
+                
+                {/* Connection Lines */}
+                <ConnectionLines 
+                  edges={filteredEdges}
+                  nodes={data.nodes}
+                  selectedNode={selectedNode}
+                  hoveredNode={hoveredNode}
+                />
+                
+                {/* Controls */}
+                <OrbitControls 
+                  enablePan={!isMobile}
+                  enableZoom={true}
+                  enableRotate={true}
+                  autoRotate={!selectedNode && !hoveredNode}
+                  autoRotateSpeed={0.2}
+                  maxDistance={isMobile ? 60 : 50}
+                  minDistance={isMobile ? 10 : 5}
+                  dampingFactor={0.05}
+                  enableDamping
+                  target={[center.x, center.y, center.z]}
+                  touches={{
+                    ONE: 1,
+                    TWO: 512,
+                  }}
+                />
+                
+                {/* Post-processing - Minimal */}
+                <EffectComposer>
+                  <Bloom 
+                    luminanceThreshold={0.3}
+                    luminanceSmoothing={0.9}
+                    intensity={isMobile ? 0.3 : 0.5}
+                    mipmapBlur
+                  />
+                  <Vignette
+                    offset={0.3}
+                    darkness={0.4}
+                    blendFunction={BlendFunction.NORMAL}
+                  />
+                </EffectComposer>
+              </Suspense>
+            </Canvas>
+
+            {/* ═══════════════════════════════════════════════════════════
+                LEFT PANEL - Categories (Desktop & Tablet only)
+            ═══════════════════════════════════════════════════════════ */}
+            {!isMobile && (
+              <div style={{ zIndex: 910 }}>
+                <CategoryLegend 
+                  clusters={data.clusters}
+                  selectedCategory={selectedCategory}
+                  onSelect={setSelectedCategory}
+                  compact={isTablet}
+                />
+              </div>
+            )}
+            
+            {/* ═══════════════════════════════════════════════════════════
+                RIGHT PANEL - Recommendations (Desktop only)
+            ═══════════════════════════════════════════════════════════ */}
+            {isDesktop && (
+              <div style={{ zIndex: 910 }}>
+                <RecommendationsPanel />
+              </div>
+            )}
+            
+            {/* ═══════════════════════════════════════════════════════════
+                BOTTOM PANEL - Recommendations (Tablet)
+            ═══════════════════════════════════════════════════════════ */}
+            {isTablet && <RecommendationsPanel position="bottom" />}
+            
+            {/* ═══════════════════════════════════════════════════════════
+                MOBILE PANELS - Slide-up sheets
+            ═══════════════════════════════════════════════════════════ */}
+            {isMobile && mobilePanel === 'categories' && (
+              <div style={{
+                position: 'fixed',
+                bottom: '60px',
+                left: 0,
+                right: 0,
+                background: '#0a0a0a',
+                borderRadius: '16px 16px 0 0',
+                border: '1px solid #262626',
+                borderBottom: 'none',
+                maxHeight: '50vh',
+                overflowY: 'auto',
+                zIndex: 920,
+                animation: 'slideUp 0.2s ease-out',
+              }}>
+                <CategoryLegend 
+                  clusters={data.clusters}
+                  selectedCategory={selectedCategory}
+                  onSelect={(cat) => {
+                    setSelectedCategory(cat);
+                    setMobilePanel('none');
+                  }}
+                  mobile
+                />
+              </div>
+            )}
+            
+            {isMobile && mobilePanel === 'recommendations' && (
+              <div style={{
+                position: 'fixed',
+                bottom: '60px',
+                left: 0,
+                right: 0,
+                background: '#0a0a0a',
+                borderRadius: '16px 16px 0 0',
+                border: '1px solid #262626',
+                borderBottom: 'none',
+                maxHeight: '60vh',
+                overflowY: 'auto',
+                zIndex: 920,
+                animation: 'slideUp 0.2s ease-out',
+              }}>
+                <RecommendationsPanel position="mobile" />
+              </div>
+            )}
+            
+            {/* ═══════════════════════════════════════════════════════════
+                MOBILE BOTTOM NAVIGATION (3D View only)
+            ═══════════════════════════════════════════════════════════ */}
+            {isMobile && (
+              <MobileNavToggle 
+                activePanel={mobilePanel} 
+                onToggle={setMobilePanel} 
+              />
+            )}
+            
+            {/* ═══════════════════════════════════════════════════════════
+                INFO PANEL - Node Details
+            ═══════════════════════════════════════════════════════════ */}
+            <div style={{ zIndex: 930 }}>
+              <InfoPanel 
+                node={selectedNode || hoveredNode}
+                allNodes={data.nodes}
+                edges={data.edges}
+                metrics={data.metrics}
+                onClose={() => setSelectedNode(null)}
+                mobile={isMobile}
+              />
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════
+                FOOTER - Instructions (Desktop/Tablet only)
+            ═══════════════════════════════════════════════════════════ */}
+            {!isMobile && (
+              <div style={{
+                position: 'absolute',
+                bottom: 16,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: isTablet ? '16px' : '24px',
+                padding: '8px 16px',
+                background: '#141414',
+                borderRadius: '8px',
+                border: '1px solid #262626',
+                zIndex: 50,
+              }}>
+                {[
+                  { icon: '🖱️', label: t.footer.rotate },
+                  { icon: '🔍', label: t.footer.zoom },
+                  { icon: '👆', label: t.footer.click },
+                ].map(({ icon, label }) => (
+                  <div key={label} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    fontSize: '11px',
+                    color: '#666',
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  }}>
+                    <span>{icon}</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          /* ═══════════════════════════════════════════════════════════
+              REPORT VIEW
+          ═══════════════════════════════════════════════════════════ */
+          <ReportView
+            data={data}
             selectedCategory={selectedCategory}
-            onSelect={(cat) => {
-              setSelectedCategory(cat);
-              setMobilePanel('none');
-            }}
-            mobile
+            onSelectCategory={setSelectedCategory}
+            onSelectSkill={setSelectedNode}
+            isMobile={isMobile}
           />
-        </div>
-      )}
-      
-      {isMobile && mobilePanel === 'recommendations' && (
-        <div style={{
-          position: 'fixed',
-          bottom: '60px',
-          left: 0,
-          right: 0,
-          background: 'rgba(10, 10, 18, 0.98)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '20px 20px 0 0',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderBottom: 'none',
-          maxHeight: '60vh',
-          overflowY: 'auto',
-          zIndex: 150,
-          animation: 'slideUp 0.3s ease-out',
-        }}>
-          <RecommendationsPanel position="mobile" />
-        </div>
-      )}
-      
-      {/* ═══════════════════════════════════════════════════════════
-          MOBILE BOTTOM NAVIGATION
-      ═══════════════════════════════════════════════════════════ */}
-      {isMobile && (
-        <MobileNavToggle 
-          activePanel={mobilePanel} 
-          onToggle={setMobilePanel} 
-        />
-      )}
-      
-      {/* ═══════════════════════════════════════════════════════════
-          INFO PANEL - Node Details (Floating, responsive)
-      ═══════════════════════════════════════════════════════════ */}
-      <InfoPanel 
-        node={selectedNode || hoveredNode}
-        allNodes={data.nodes}
-        edges={data.edges}
-        metrics={data.metrics}
-        onClose={() => setSelectedNode(null)}
-        mobile={isMobile}
-      />
+        )}
+      </div>
       
       {/* ═══════════════════════════════════════════════════════════
           DIAGNOSTIC REPORT MODAL
@@ -668,57 +727,6 @@ export default function App() {
         data={data}
         healthScore={healthScore}
       />
-      
-      {/* ═══════════════════════════════════════════════════════════
-          FOOTER - Instructions (Desktop/Tablet only)
-      ═══════════════════════════════════════════════════════════ */}
-      {!isMobile && (
-        <div style={{
-          position: 'absolute',
-          bottom: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: isTablet ? '16px' : '24px',
-          padding: '10px 20px',
-          background: 'rgba(10, 10, 20, 0.85)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}>
-          {[
-            { icon: '🖱️', label: t.footer.rotate },
-            { icon: '🔍', label: t.footer.zoom },
-            { icon: '👆', label: t.footer.click },
-          ].map(({ icon, label }) => (
-            <div key={label} style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              fontSize: '11px',
-              color: '#666',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-            }}>
-              <span>{icon}</span>
-              <span>{label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Powered by badge - Desktop only */}
-      {isDesktop && (
-        <div style={{
-          position: 'absolute',
-          bottom: 20,
-          right: 20,
-          fontSize: '10px',
-          color: '#333',
-          fontFamily: '"JetBrains Mono", monospace',
-        }}>
-          {t.footer.powered} <span style={{ color: '#555' }}>Three.js + React</span>
-        </div>
-      )}
       
       {/* Global animations */}
       <style>{`

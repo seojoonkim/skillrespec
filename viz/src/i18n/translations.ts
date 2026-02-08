@@ -85,6 +85,21 @@ export interface Translations {
     categories: string;
     recommend: string;
   };
+  viewMode: {
+    threeD: string;
+    report: string;
+  };
+  reportView: {
+    skillName: string;
+    category: string;
+    tokens: string;
+    connections: string;
+    status: string;
+    noSkills: string;
+    active: string;
+    inactive: string;
+    total: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -168,6 +183,21 @@ export const translations: Record<Language, Translations> = {
       categories: '카테고리',
       recommend: '추천',
     },
+    viewMode: {
+      threeD: '3D 뷰',
+      report: '리포트',
+    },
+    reportView: {
+      skillName: '스킬명',
+      category: '카테고리',
+      tokens: '토큰',
+      connections: '연결',
+      status: '상태',
+      noSkills: '스킬이 없습니다',
+      active: '활성',
+      inactive: '비활성',
+      total: '총',
+    },
   },
   en: {
     header: {
@@ -248,6 +278,21 @@ export const translations: Record<Language, Translations> = {
     mobile: {
       categories: 'Categories',
       recommend: 'Recommend',
+    },
+    viewMode: {
+      threeD: '3D View',
+      report: 'Report',
+    },
+    reportView: {
+      skillName: 'Skill Name',
+      category: 'Category',
+      tokens: 'Tokens',
+      connections: 'Connections',
+      status: 'Status',
+      noSkills: 'No skills found',
+      active: 'Active',
+      inactive: 'Inactive',
+      total: 'Total',
     },
   },
   ja: {
@@ -330,6 +375,21 @@ export const translations: Record<Language, Translations> = {
       categories: 'カテゴリ',
       recommend: 'おすすめ',
     },
+    viewMode: {
+      threeD: '3Dビュー',
+      report: 'レポート',
+    },
+    reportView: {
+      skillName: 'スキル名',
+      category: 'カテゴリ',
+      tokens: 'トークン',
+      connections: '接続',
+      status: 'ステータス',
+      noSkills: 'スキルがありません',
+      active: 'アクティブ',
+      inactive: '非アクティブ',
+      total: '合計',
+    },
   },
   zh: {
     header: {
@@ -410,6 +470,21 @@ export const translations: Record<Language, Translations> = {
     mobile: {
       categories: '类别',
       recommend: '推荐',
+    },
+    viewMode: {
+      threeD: '3D视图',
+      report: '报告',
+    },
+    reportView: {
+      skillName: '技能名称',
+      category: '类别',
+      tokens: '令牌',
+      connections: '连接',
+      status: '状态',
+      noSkills: '没有技能',
+      active: '活跃',
+      inactive: '不活跃',
+      total: '总计',
     },
   },
 };
