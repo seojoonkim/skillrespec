@@ -1,0 +1,32 @@
+{
+  "name": "skillrespec",
+  "version": "0.1.0",
+  "description": "AI Agent Skill Optimizer - Respec your skills like a game",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "skillrespec": "./bin/skillrespec.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --watch"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "skills",
+    "optimizer",
+    "cli"
+  ],
+  "author": "seojoonkim",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
