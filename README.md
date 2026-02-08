@@ -1,89 +1,132 @@
-# SkillRespec ⚔️🎮
+# ⚔️ SkillRespec
 
-> **AI Agent Skill Optimizer** — Respec your skills like a game
+> AI Agent Skill Optimizer - Respec your skills like a game 🎮
 
-Your AI agent has accumulated skills like an MMO character who hoarded every spell. Time for a respec.
+[![npm version](https://img.shields.io/npm/v/skillrespec.svg)](https://www.npmjs.com/package/skillrespec)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎯 What is this?
+Like in your favorite RPG, sometimes your AI agent needs to **respec**. Too many overlapping skills? Token budget bloated? SkillRespec analyzes your skill portfolio and tells you what to keep, merge, or drop.
 
-SkillRespec helps you:
-- **Scan** your agent's skill tree
-- **Analyze** skill health and redundancy
-- **Respec** — get recommendations to trim, upgrade, or merge
+## 🚀 Features
 
-Think of it as the talent tree reset for your AI agent.
+### CLI Commands
+
+```bash
+# Scan skills in a directory
+skillrespec scan ./skills
+
+# Analyze with technical metrics
+skillrespec analyze
+
+# 🔥 ROAST MODE - Get brutally honest feedback
+skillrespec analyze --roast
+
+# Get respec recommendations
+skillrespec respec
+
+# Query the skill catalog
+skillrespec catalog --category security
+skillrespec catalog --search "email"
+skillrespec catalog --stats
+
+# Show top token consumers
+skillrespec top -n 20
+
+# Generate 3D visualization data
+skillrespec viz -o viz-data.json
+```
+
+### Technical Metrics
+
+- **Cosine Similarity** - Find duplicate/overlapping skills
+- **Cluster Density** - How balanced is your skill distribution
+- **Overlap Coefficient** - Redundancy percentage
+- **Coverage Score** - Per-category coverage analysis
+- **Uniqueness Index** - How diverse is your portfolio
+
+### 3D Visualization
+
+Premium WebGL visualization with:
+
+- 🌌 Dark theme + neon glow effects
+- ✨ Particle/star background
+- 🎥 Smooth camera animations
+- 🔗 Interactive connection lines
+- 📊 Real-time metrics panel
+- 🏷️ Category filtering
+- 💡 Skill detail popups with recommendations
 
 ## 📦 Installation
 
 ```bash
+# Global install
 npm install -g skillrespec
+
+# Or run directly
+npx skillrespec analyze --roast
 ```
 
-Or run directly:
+## 🖥️ Visualization
+
 ```bash
-npx skillrespec scan ./skills
+# Generate viz data
+skillrespec viz
+
+# Start the 3D viewer
+cd viz && npm install && npm run dev
 ```
 
-## 🚀 Usage
-
-### Scan your skills
-```bash
-skillrespec scan [directory]
-```
-
-### Analyze skill health
-```bash
-skillrespec analyze [directory]
-```
-
-### Roast Mode 🔥
-For when you need brutal honesty:
-```bash
-skillrespec analyze --roast
-```
-
-### Get respec recommendations
-```bash
-skillrespec respec
-```
+Open `http://localhost:5173` for the interactive 3D skill map.
 
 ## 📊 Example Output
 
 ```
-🔍 Scanning ./skills...
-📦 Found 5 skill(s) in 23ms
+╔══════════════════════════════════════════════════════════════╗
+║  🔥🔥🔥 ROAST MODE: SKILL PORTFOLIO DESTRUCTION 🔥🔥🔥       ║
+╚══════════════════════════════════════════════════════════════╝
 
-  • prompt-guard v2.8.0
-    AI prompt injection defense
-  • web-scraper v1.2.0
-    Extract data from websites
-  • memory-manager v0.5.0
-    Long-term memory management
+  Overall Score: 🟡 83/100
+  [█████████████████░░░]
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │ TECHNICAL METRICS                                          │
+  ├─────────────────────────────────────────────────────────────┤
+  │ Cluster Density        │ 67.0% (balance)               │
+  │ Overlap Coefficient    │ 52.0% (redundancy)          │
+  │ Uniqueness Index       │ 100.0%                         │
+  │ Total Tokens           │ ~149,151 tokens                  │
+  └─────────────────────────────────────────────────────────────┘
+
+  💀 ROAST VERDICT:
+  🔥 You have 20 skills that basically do the same thing. Ever heard of DRY?
+  🔥 I've seen smaller context windows in submarine portholes.
+
+  💡 RESPEC RECOMMENDATIONS:
+     🔀 docx: 83% similar to pptx
+     🔀 slack: 70% similar to discord
 ```
+
+## 🛠️ Tech Stack
+
+**CLI:**
+- TypeScript + tsup
+- Commander.js
+
+**Visualization:**
+- React 18
+- Three.js (react-three-fiber)
+- @react-three/drei
+- @react-three/postprocessing
+- Vite
 
 ## 🎮 Why "Respec"?
 
-In RPGs, a **respec** lets you reallocate your skill points. Your agent needs the same thing:
+In RPGs, **respec** means reallocating your skill points - dropping skills that no longer serve you and investing in what matters. Your AI agent deserves the same optimization.
 
-- That `deprecated-api-v1` skill? Time to go.
-- Three different "summarize" skills? Merge them.
-- Core skills without proper SKILL.md? Fix them.
+## 📝 License
 
-**Level up your agent. Respec your skills.** 🚀
-
-## 🛣️ Roadmap
-
-- [x] v0.1.0 — Basic scan & analyze
-- [ ] v0.2.0 — Smart recommendations
-- [ ] v0.3.0 — Auto-fix common issues
-- [ ] v1.0.0 — Full skill optimization suite
-
-## 📄 License
-
-MIT © [seojoonkim](https://github.com/seojoonkim)
+MIT © seojoonkim
 
 ---
 
-*Built with ☕ and the urge to clean up messy skill directories.*
-
-**Star this repo if your agent needs a respec!** ⭐
+Made with ⚔️ by [Zeon](https://github.com/seojoonkim)
