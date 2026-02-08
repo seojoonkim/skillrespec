@@ -4,20 +4,18 @@ import { theme } from '../styles/theme';
 import type { DiagnosisItem, InstallItem, RemoveItem, UpdateItem } from '../data/recommendations';
 
 // ═══════════════════════════════════════════════════════════
-// Tab Component - Modern pill style
+// Tab Component - Clean minimal style
 // ═══════════════════════════════════════════════════════════
 function Tab({ 
   active, 
   onClick, 
   children, 
   count,
-  icon,
 }: { 
   active: boolean; 
   onClick: () => void; 
   children: React.ReactNode; 
   count?: number;
-  icon?: string;
 }) {
   return (
     <button
@@ -27,7 +25,7 @@ function Tab({
         padding: '12px 8px',
         background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${active ? theme.colors.accent : 'transparent'}`,
+        borderBottom: `2px solid ${active ? theme.colors.textPrimary : 'transparent'}`,
         color: active ? theme.colors.textPrimary : theme.colors.textMuted,
         fontSize: theme.fontSize.xs,
         fontWeight: theme.fontWeight.medium,
@@ -48,15 +46,14 @@ function Tab({
         if (!active) e.currentTarget.style.color = theme.colors.textMuted;
       }}
     >
-      {icon && <span style={{ fontSize: '12px' }}>{icon}</span>}
       {children}
       {count !== undefined && count > 0 && (
         <span style={{
           fontSize: '10px',
           padding: '2px 6px',
           borderRadius: theme.radius.full,
-          background: active ? theme.colors.accentMuted : theme.colors.bgTertiary,
-          color: active ? theme.colors.accent : theme.colors.textMuted,
+          background: theme.colors.bgTertiary,
+          color: theme.colors.textMuted,
           fontFamily: theme.fonts.mono,
           fontWeight: theme.fontWeight.semibold,
         }}>
@@ -68,90 +65,45 @@ function Tab({
 }
 
 // ═══════════════════════════════════════════════════════════
-// Section Components - Clean card style
+// Section Components - Clean minimal style
 // ═══════════════════════════════════════════════════════════
 function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
-  const getStyles = (type: string) => {
-    switch (type) {
-      case 'success': return { color: theme.colors.success, bg: theme.colors.successGlow, icon: '✓' };
-      case 'warning': return { color: theme.colors.warning, bg: theme.colors.warningGlow, icon: '!' };
-      case 'error': return { color: theme.colors.error, bg: theme.colors.errorGlow, icon: '✕' };
-      default: return { color: theme.colors.textMuted, bg: theme.colors.bgTertiary, icon: '•' };
-    }
-  };
-
   return (
     <div style={{ padding: '16px' }}>
-      {items.map((item, i) => {
-        const style = getStyles(item.type);
-        return (
-          <div
-            key={i}
-            style={{
-              padding: '14px 16px',
-              marginBottom: '10px',
-              background: theme.colors.bgTertiary,
-              borderRadius: theme.radius.md,
-              borderLeft: `3px solid ${style.color}`,
-              transition: theme.transitions.fast,
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px',
-            }}>
-              <span style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: theme.radius.full,
-                background: style.bg,
-                color: style.color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: theme.fontWeight.bold,
-                flexShrink: 0,
-              }}>
-                {style.icon}
-              </span>
-              <div>
-                <div style={{
-                  fontSize: theme.fontSize.sm,
-                  fontWeight: theme.fontWeight.medium,
-                  color: theme.colors.textPrimary,
-                  marginBottom: '4px',
-                  lineHeight: 1.4,
-                }}>
-                  {item.text}
-                </div>
-                <div style={{
-                  fontSize: theme.fontSize.xs,
-                  color: theme.colors.textMuted,
-                  lineHeight: 1.5,
-                }}>
-                  {item.detail}
-                </div>
-              </div>
-            </div>
+      {items.map((item, i) => (
+        <div
+          key={i}
+          style={{
+            padding: '14px 16px',
+            marginBottom: '10px',
+            background: theme.colors.bgTertiary,
+            borderRadius: theme.radius.md,
+            transition: theme.transitions.fast,
+          }}
+        >
+          <div style={{
+            fontSize: theme.fontSize.sm,
+            fontWeight: theme.fontWeight.medium,
+            color: theme.colors.textPrimary,
+            marginBottom: '4px',
+            lineHeight: 1.4,
+          }}>
+            {item.text}
           </div>
-        );
-      })}
+          <div style={{
+            fontSize: theme.fontSize.xs,
+            color: theme.colors.textMuted,
+            lineHeight: 1.5,
+          }}>
+            {item.detail}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 function InstallSection({ items }: { items: InstallItem[] }) {
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.warning;
-      case 'low': return theme.colors.info;
-      default: return theme.colors.textMuted;
-    }
-  };
-
   return (
     <div style={{ padding: '16px' }}>
       {items.map((item, i) => (
@@ -167,10 +119,10 @@ function InstallSection({ items }: { items: InstallItem[] }) {
         >
           <span style={{
             fontSize: theme.fontSize.xs,
-            fontWeight: theme.fontWeight.bold,
-            color: getPriorityColor(item.priority),
+            fontWeight: theme.fontWeight.medium,
+            color: theme.colors.textMuted,
             padding: '3px 8px',
-            background: `${getPriorityColor(item.priority)}20`,
+            background: theme.colors.bgTertiary,
             borderRadius: theme.radius.sm,
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
@@ -216,7 +168,7 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
           }}
         >
           <span style={{ 
-            color: theme.colors.error, 
+            color: theme.colors.textMuted, 
             fontSize: '18px',
             lineHeight: 1,
             fontWeight: theme.fontWeight.bold,
@@ -227,11 +179,10 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
             <div style={{
               fontSize: theme.fontSize.sm,
               fontWeight: theme.fontWeight.semibold,
-              color: theme.colors.textPrimary,
+              color: theme.colors.textMuted,
               fontFamily: theme.fonts.mono,
               marginBottom: '4px',
               textDecoration: 'line-through',
-              textDecorationColor: theme.colors.error,
             }}>
               {item.id}
             </div>
@@ -264,7 +215,7 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
           }}
         >
           <span style={{ 
-            color: theme.colors.info, 
+            color: theme.colors.textMuted, 
             fontSize: '16px',
             lineHeight: 1,
           }}>
@@ -295,8 +246,8 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
                 fontFamily: theme.fonts.mono,
               }}>
                 <span style={{ opacity: 0.6 }}>{item.from}</span>
-                <span style={{ color: theme.colors.info }}>→</span>
-                <span style={{ color: theme.colors.info, fontWeight: theme.fontWeight.medium }}>{item.to}</span>
+                <span>→</span>
+                <span style={{ fontWeight: theme.fontWeight.medium }}>{item.to}</span>
               </div>
             </div>
             <div style={{
@@ -382,12 +333,8 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
             fontWeight: theme.fontWeight.semibold,
             color: theme.colors.textPrimary,
             margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
             letterSpacing: '-0.01em',
           }}>
-            <span style={{ fontSize: '16px' }}>🎯</span>
             Recommendations
           </h2>
         </div>
@@ -403,7 +350,6 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'diagnosis'} 
           onClick={() => setActiveTab('diagnosis')} 
           count={recommendations.diagnosis.length}
-          icon="📊"
         >
           Analysis
         </Tab>
@@ -411,7 +357,6 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'install'} 
           onClick={() => setActiveTab('install')} 
           count={recommendations.install.length}
-          icon="➕"
         >
           Install
         </Tab>
@@ -419,7 +364,6 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'remove'} 
           onClick={() => setActiveTab('remove')} 
           count={recommendations.remove.length}
-          icon="➖"
         >
           Remove
         </Tab>
@@ -427,7 +371,6 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'update'} 
           onClick={() => setActiveTab('update')} 
           count={recommendations.update.length}
-          icon="↑"
         >
           Update
         </Tab>
