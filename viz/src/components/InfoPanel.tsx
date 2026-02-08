@@ -126,7 +126,7 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
   if (!node) {
     return (
       <div style={{
-        height: mobile ? '100px' : '140px',
+        height: mobile ? '100px' : '120px',
         background: `linear-gradient(180deg, ${theme.colors.bgSecondary} 0%, ${theme.colors.bgPrimary} 100%)`,
         borderTop: `1px solid ${theme.colors.border}`,
         display: 'flex',
@@ -148,13 +148,13 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
   // Active state - show skill info
   return (
     <div style={{
-      height: mobile ? '100px' : '140px',
+      minHeight: mobile ? '100px' : '120px',
       background: `linear-gradient(180deg, ${theme.colors.bgSecondary} 0%, ${theme.colors.bgPrimary} 100%)`,
       borderTop: `1px solid ${theme.colors.border}`,
       display: 'flex',
       fontFamily: theme.fonts.sans,
-      overflow: 'hidden',
       position: 'relative',
+      padding: '8px 0',
     }}>
       {/* Accent line at top */}
       <div style={{
@@ -197,10 +197,8 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
             fontWeight: theme.fontWeight.semibold,
             color: theme.colors.textPrimary,
             margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
             letterSpacing: '-0.01em',
+            lineHeight: 1.2,
           }}>
             {node.name}
           </h2>
@@ -253,13 +251,13 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
       {/* Right: Similar Skills */}
       {!mobile && connectedNodes.length > 0 && (
         <div style={{
-          width: '320px',
-          padding: '16px 20px',
+          minWidth: '280px',
+          maxWidth: '400px',
+          padding: '12px 20px',
           borderLeft: `1px solid ${theme.colors.border}`,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          flexShrink: 0,
         }}>
           <div style={{
             fontSize: theme.fontSize.xs,
