@@ -290,7 +290,7 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          SLIM HEADER
+          BRANDED HEADER
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
         padding: isMobile ? '12px 16px' : '16px 24px',
@@ -307,25 +307,42 @@ export default function App() {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '12px',
           }}>
-            <span style={{ fontSize: '20px' }}>📊</span>
+            <span style={{ fontSize: isMobile ? '24px' : '28px' }}>⚔️</span>
             <div>
-              <h1 style={{
-                fontSize: isMobile ? theme.fontSize.md : theme.fontSize.lg,
-                fontWeight: theme.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                margin: 0,
-                lineHeight: 1.2,
+              <div style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: '8px',
+                flexWrap: 'wrap',
               }}>
-                Skill Set Diagnostic Report
-              </h1>
+                <h1 style={{
+                  fontSize: isMobile ? theme.fontSize.lg : theme.fontSize.xl,
+                  fontWeight: theme.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                  margin: 0,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.02em',
+                }}>
+                  SkillRespec
+                </h1>
+                <span style={{
+                  fontSize: theme.fontSize.sm,
+                  color: theme.colors.textMuted,
+                  fontWeight: theme.fontWeight.normal,
+                }}>
+                  Diagnostic Report
+                </span>
+              </div>
               <div style={{
                 fontSize: theme.fontSize.xs,
                 color: theme.colors.textMuted,
-                marginTop: '2px',
+                marginTop: '4px',
               }}>
-                Simon · {dateStr}
+                Target: <span style={{ color: theme.colors.textSecondary }}>Simon</span>
+                <span style={{ margin: '0 8px', opacity: 0.5 }}>·</span>
+                Analyzed: <span style={{ color: theme.colors.textSecondary }}>{dateStr}</span>
               </div>
             </div>
           </div>
