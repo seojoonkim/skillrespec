@@ -13,6 +13,9 @@ import ResultsPage from './pages/ResultsPage';
 import SearchBar from './components/SearchBar';
 import ToolNodes, { ToolConnectionLines } from './components/ToolNodes';
 import HealthDashboard from './components/HealthDashboard';
+import MarketplacePanel from './components/MarketplacePanel';
+import PresetPanel from './components/PresetPanel';
+import LintPanel from './components/LintPanel';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
@@ -206,6 +209,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTools, setShowTools] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health'>('categories');
+  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'marketplace' | 'presets' | 'lint'>('recommend');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
 
@@ -652,7 +656,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
               )}
             </div>
             
-            {/* RIGHT COLUMN: Recommendations */}
+            {/* RIGHT COLUMN: Recommendations / Marketplace / Presets / Lint */}
             {(isDesktop || isTablet) && (
               <div style={{
                 background: theme.colors.bgSecondary,
@@ -661,7 +665,51 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                 display: 'flex',
                 flexDirection: 'column',
               }}>
-                <RecommendationsPanel embedded />
+                {/* Tab Switcher */}
+                <div style={{
+                  display: 'flex',
+                  borderBottom: `1px solid ${theme.colors.border}`,
+                  background: theme.colors.bgTertiary,
+                  flexShrink: 0,
+                }}>
+                  {[
+                    { id: 'recommend', label: '🎯', title: 'Recommendations' },
+                    { id: 'marketplace', label: '🏪', title: 'Marketplace' },
+                    { id: 'presets', label: '🎛️', title: 'Presets' },
+                    { id: 'lint', label: '🔍', title: 'Lint' },
+                  ].map(({ id, label, title }) => (
+                    <button
+                      key={id}
+                      onClick={() => setRightPanelTab(id as typeof rightPanelTab)}
+                      title={title}
+                      style={{
+                        flex: 1,
+                        padding: '10px 8px',
+                        background: rightPanelTab === id ? theme.colors.bgSecondary : 'transparent',
+                        border: 'none',
+                        borderBottom: rightPanelTab === id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
+                        color: rightPanelTab === id ? theme.colors.textPrimary : theme.colors.textMuted,
+                        fontSize: theme.fontSize.md,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: theme.fonts.sans,
+                        transition: theme.transitions.fast,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab Content */}
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  {rightPanelTab === 'recommend' && <RecommendationsPanel embedded />}
+                  {rightPanelTab === 'marketplace' && <MarketplacePanel installedSkills={data.nodes} embedded />}
+                  {rightPanelTab === 'presets' && <PresetPanel activeSkills={data.nodes} embedded />}
+                  {rightPanelTab === 'lint' && <LintPanel skills={data.nodes} selectedSkill={selectedNode} embedded />}
+                </div>
               </div>
             )}
           </div>
