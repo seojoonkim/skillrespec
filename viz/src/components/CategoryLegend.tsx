@@ -359,84 +359,152 @@ export default function CategoryLegend({
       </div>
 
       <div style={{ padding: '8px', overflowY: 'auto', flex: 1 }}>
-        {/* All filter - Tree node */}
-        <div>
-          <button
-            onClick={(e) => toggleExpand('__all__', e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '10px 12px',
-              background: selectedCategory === null && !expandedCategories.has('__all__') ? theme.colors.bgElevated : 'transparent',
-              border: 'none',
-              borderRadius: theme.radius.md,
-              cursor: 'pointer',
-              color: selectedCategory === null ? theme.colors.accent : theme.colors.textSecondary,
-              fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.medium,
-              textAlign: 'left',
-              marginBottom: '2px',
-              transition: theme.transitions.fast,
-            }}
-            onMouseEnter={(e) => {
-              if (selectedCategory !== null || expandedCategories.has('__all__')) {
-                e.currentTarget.style.background = theme.colors.bgHover;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (selectedCategory !== null || expandedCategories.has('__all__')) {
-                e.currentTarget.style.background = 'transparent';
-              }
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ 
-                fontSize: '10px', 
-                color: theme.colors.textMuted,
-                width: '12px',
-              }}>
-                {expandedCategories.has('__all__') ? '▾' : '▸'}
-              </span>
-              All
-            </span>
-            <span style={{ 
-              fontFamily: theme.fonts.mono,
-              fontSize: theme.fontSize.xs,
-            }}>
-              {totalSkills}
-            </span>
-          </button>
-          
-          {/* Expanded skill list for All */}
-          {expandedCategories.has('__all__') && onSelectNode && (
-            <div style={{ 
-              paddingLeft: '20px',
-              maxHeight: '200px',
-              overflowY: 'auto',
-            }}>
-              {allNodesSorted.map((node, idx) => {
-                const isLast = idx === allNodesSorted.length - 1;
-                const isNodeSelected = selectedNode?.id === node.id;
-                const nodeColor = theme.categoryColors[node.category] || theme.colors.textMuted;
+        {/* All filter - just a filter, no expand */}
+        <button
+          onClick={() => onSelect(null)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            padding: '10px 12px',
+            background: selectedCategory === null ? theme.colors.bgElevated : 'transparent',
+            border: 'none',
+            borderRadius: theme.radius.md,
+            cursor: 'pointer',
+            color: selectedCategory === null ? theme.colors.accent : theme.colors.textSecondary,
+            fontSize: theme.fontSize.sm,
+            fontWeight: theme.fontWeight.medium,
+            textAlign: 'left',
+            marginBottom: '8px',
+            transition: theme.transitions.fast,
+          }}
+          onMouseEnter={(e) => {
+            if (selectedCategory !== null) {
+              e.currentTarget.style.background = theme.colors.bgHover;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedCategory !== null) {
+              e.currentTarget.style.background = 'transparent';
+            }
+          }}
+        >
+          <span>All</span>
+          <span style={{ 
+            fontFamily: theme.fonts.mono,
+            fontSize: theme.fontSize.xs,
+            color: theme.colors.accent,
+          }}>
+            {totalSkills}
+          </span>
+        </button>
+
+        {/* Categories with expand */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {sortedClusters.map((cluster) => {
+            const isExpanded = expandedCategories.has(cluster.category);
+            const isSelected = selectedCategory === cluster.category;
+            const color = theme.categoryColors[cluster.category] || theme.colors.textMuted;
+            const percentage = totalSkills > 0 
+              ? Math.round((cluster.skills.length / totalSkills) * 100) 
+              : 0;
+            
+            // Get nodes for this category
+            const categoryNodes = nodes.filter(n => n.category === cluster.category);
+            
+            return (
+              <div key={cluster.category}>
+                <button
+                  onClick={(e) => toggleExpand(cluster.category, e)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: isSelected ? theme.colors.bgElevated : 'transparent',
+                    border: 'none',
+                    borderRadius: theme.radius.md,
+                    cursor: 'pointer',
+                    color: theme.colors.textSecondary,
+                    fontSize: theme.fontSize.sm,
+                    fontWeight: theme.fontWeight.medium,
+                    textAlign: 'left',
+                    transition: theme.transitions.fast,
+                    gap: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = theme.colors.bgHover;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  {/* Expand indicator - more visible */}
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: isExpanded ? theme.colors.accent : theme.colors.textMuted,
+                    fontWeight: 'bold',
+                    width: '14px',
+                    transition: 'transform 0.2s',
+                    transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  }}>
+                    ▸
+                  </span>
+                  
+                  {/* Category color dot */}
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: color,
+                    boxShadow: `0 0 6px ${color}`,
+                    flexShrink: 0,
+                  }} />
+                  
+                  {/* Category name */}
+                  <span style={{ flex: 1 }}>{cluster.name}</span>
+                  
+                  {/* Count and percentage */}
+                  <span style={{ 
+                    fontFamily: theme.fonts.mono,
+                    fontSize: theme.fontSize.xs,
+                    color: theme.colors.textMuted,
+                  }}>
+                    {cluster.skills.length}
+                    <span style={{ opacity: 0.6, marginLeft: '4px' }}>{percentage}%</span>
+                  </span>
+                </button>
                 
-                return (
-                  <button
-                    key={node.id}
-                    onClick={() => onSelectNode(node)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      padding: '6px 8px',
-                      background: isNodeSelected ? theme.colors.bgElevated : 'transparent',
-                      border: 'none',
-                      borderRadius: theme.radius.sm,
-                      cursor: 'pointer',
-                      color: isNodeSelected ? theme.colors.textPrimary : theme.colors.textMuted,
-                      fontSize: theme.fontSize.xs,
+                {/* Expanded skills list */}
+                {isExpanded && onSelectNode && (
+                  <div style={{ 
+                    paddingLeft: '34px',
+                    paddingTop: '4px',
+                    paddingBottom: '4px',
+                  }}>
+                    {categoryNodes.map((node, idx) => {
+                      const isLast = idx === categoryNodes.length - 1;
+                      const isNodeSelected = selectedNode?.id === node.id;
+                      
+                      return (
+                        <button
+                          key={node.id}
+                          onClick={() => onSelectNode(node)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '5px 8px',
+                            background: isNodeSelected ? theme.colors.bgElevated : 'transparent',
+                            border: 'none',
+                            borderRadius: theme.radius.sm,
+                            cursor: 'pointer',
+                            color: isNodeSelected ? theme.colors.textPrimary : theme.colors.textMuted,
+                            fontSize: theme.fontSize.xs,
                       textAlign: 'left',
                       transition: theme.transitions.fast,
                     }}
@@ -476,169 +544,14 @@ export default function CategoryLegend({
                       {node.name}
                     </span>
                   </button>
-                );
-              })}
-            </div>
-          )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {/* Category items - Tree nodes */}
-        {sortedClusters.map(cluster => {
-          const isSelected = selectedCategory === cluster.category;
-          const isExpanded = expandedCategories.has(cluster.category);
-          const color = theme.categoryColors[cluster.category] || theme.colors.textMuted;
-          const percentage = Math.round((cluster.skills.length / totalSkills) * 100);
-          const categorySkills = skillsByCategory.get(cluster.category) || [];
-          
-          return (
-            <div key={cluster.id}>
-              <button
-                onClick={(e) => toggleExpand(cluster.category, e)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: isSelected && !isExpanded ? theme.colors.bgElevated : 'transparent',
-                  border: 'none',
-                  borderRadius: theme.radius.md,
-                  cursor: 'pointer',
-                  color: theme.colors.textPrimary,
-                  fontSize: theme.fontSize.sm,
-                  textAlign: 'left',
-                  marginBottom: '2px',
-                  transition: theme.transitions.fast,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected || isExpanded) {
-                    e.currentTarget.style.background = theme.colors.bgHover;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected || isExpanded) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
-              >
-                {/* Expand/collapse icon */}
-                <span style={{ 
-                  fontSize: '10px', 
-                  color: theme.colors.textMuted,
-                  width: '12px',
-                }}>
-                  {isExpanded ? '▾' : '▸'}
-                </span>
-                
-                {/* Color dot with glow effect */}
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: color,
-                  boxShadow: isSelected ? `0 0 8px ${color}` : 'none',
-                  flexShrink: 0,
-                  transition: theme.transitions.fast,
-                }} />
-                
-                {/* Name */}
-                <span style={{ 
-                  flex: 1,
-                  fontWeight: isSelected ? theme.fontWeight.medium : theme.fontWeight.normal,
-                  color: isSelected ? theme.colors.textPrimary : theme.colors.textSecondary,
-                  textTransform: 'capitalize',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.3,
-                }}>
-                  {cluster.name}
-                </span>
-                
-                {/* Count & percentage */}
-                <div style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontFamily: theme.fonts.mono,
-                  fontSize: theme.fontSize.xs,
-                }}>
-                  <span style={{ color: isSelected ? color : theme.colors.textMuted }}>
-                    {cluster.skills.length}
-                  </span>
-                  <span style={{ 
-                    color: theme.colors.textSubtle,
-                    fontSize: '10px',
-                  }}>
-                    {percentage}%
-                  </span>
-                </div>
-              </button>
-              
-              {/* Expanded skill list */}
-              {isExpanded && onSelectNode && (
-                <div style={{ 
-                  paddingLeft: '20px',
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                }}>
-                  {categorySkills.map((node, idx) => {
-                    const isLast = idx === categorySkills.length - 1;
-                    const isNodeSelected = selectedNode?.id === node.id;
-                    
-                    return (
-                      <button
-                        key={node.id}
-                        onClick={() => onSelectNode(node)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          width: '100%',
-                          padding: '6px 8px',
-                          background: isNodeSelected ? theme.colors.bgElevated : 'transparent',
-                          border: 'none',
-                          borderRadius: theme.radius.sm,
-                          cursor: 'pointer',
-                          color: isNodeSelected ? theme.colors.textPrimary : theme.colors.textMuted,
-                          fontSize: theme.fontSize.xs,
-                          textAlign: 'left',
-                          transition: theme.transitions.fast,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isNodeSelected) {
-                            e.currentTarget.style.background = theme.colors.bgHover;
-                            e.currentTarget.style.color = theme.colors.textSecondary;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isNodeSelected) {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = theme.colors.textMuted;
-                          }
-                        }}
-                      >
-                        <span style={{ 
-                          color: theme.colors.textSubtle,
-                          fontSize: '10px',
-                          fontFamily: theme.fonts.mono,
-                        }}>
-                          {isLast ? '└' : '├'}
-                        </span>
-                        <span style={{ 
-                          flex: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {node.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
     </div>
   );
