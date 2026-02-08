@@ -154,14 +154,14 @@ export default function CategoryLegend({
           fontWeight: theme.fontWeight.semibold,
           color: theme.colors.textPrimary,
         }}>
-          Categories
+          {clusters.length} Categories
         </span>
         <span style={{ 
           fontSize: theme.fontSize.xs,
           color: theme.colors.textMuted,
           fontFamily: theme.fonts.mono,
         }}>
-          {totalSkills}
+          {totalSkills} skills
         </span>
       </div>
 
