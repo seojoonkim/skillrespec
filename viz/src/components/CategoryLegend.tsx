@@ -532,7 +532,7 @@ export default function CategoryLegend({
                       width: '6px',
                       height: '6px',
                       borderRadius: '50%',
-                      background: nodeColor,
+                      background: color,
                       flexShrink: 0,
                     }} />
                     <span style={{ 
