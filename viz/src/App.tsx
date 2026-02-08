@@ -10,21 +10,48 @@ import InfoPanel from './components/InfoPanel';
 import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
+import { useWindowSize } from './hooks/useWindowSize';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
 
-// Header Stat Component
+// Header Stat Component (Responsive)
 function HeaderStat({ 
   icon, 
   value, 
   label, 
-  color 
+  color,
+  compact = false,
 }: { 
   icon: string; 
   value: string | number; 
   label: string; 
   color: string;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 10px',
+        background: `${color}15`,
+        border: `1px solid ${color}30`,
+        borderRadius: '8px',
+      }}>
+        <span style={{ fontSize: '14px' }}>{icon}</span>
+        <span style={{
+          fontSize: '14px',
+          fontWeight: 700,
+          color: color,
+          fontFamily: '"JetBrains Mono", monospace',
+        }}>
+          {value}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -59,12 +86,89 @@ function HeaderStat({
   );
 }
 
+// Mobile Bottom Nav Toggle
+function MobileNavToggle({ 
+  activePanel, 
+  onToggle 
+}: { 
+  activePanel: 'none' | 'categories' | 'recommendations';
+  onToggle: (panel: 'none' | 'categories' | 'recommendations') => void;
+}) {
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '8px',
+      padding: '12px 16px',
+      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      background: 'linear-gradient(180deg, transparent 0%, rgba(5,5,8,0.95) 30%)',
+      zIndex: 200,
+    }}>
+      <button
+        onClick={() => onToggle(activePanel === 'categories' ? 'none' : 'categories')}
+        style={{
+          flex: 1,
+          maxWidth: '140px',
+          padding: '12px 16px',
+          background: activePanel === 'categories' 
+            ? 'rgba(0,255,255,0.2)' 
+            : 'rgba(255,255,255,0.05)',
+          border: `1px solid ${activePanel === 'categories' ? 'rgba(0,255,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '12px',
+          color: activePanel === 'categories' ? '#00ffff' : '#888',
+          fontSize: '12px',
+          fontWeight: 600,
+          fontFamily: '"Plus Jakarta Sans", sans-serif',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}
+      >
+        🏷️ Categories
+      </button>
+      <button
+        onClick={() => onToggle(activePanel === 'recommendations' ? 'none' : 'recommendations')}
+        style={{
+          flex: 1,
+          maxWidth: '140px',
+          padding: '12px 16px',
+          background: activePanel === 'recommendations' 
+            ? 'rgba(255,0,255,0.2)' 
+            : 'rgba(255,255,255,0.05)',
+          border: `1px solid ${activePanel === 'recommendations' ? 'rgba(255,0,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '12px',
+          color: activePanel === 'recommendations' ? '#ff00ff' : '#888',
+          fontSize: '12px',
+          fontWeight: 600,
+          fontFamily: '"Plus Jakarta Sans", sans-serif',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}
+      >
+        🎯 Recommend
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState<VizData | null>(null);
   const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<SkillNode | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobilePanel, setMobilePanel] = useState<'none' | 'categories' | 'recommendations'>('none');
+  
+  const { isMobile, isTablet, isDesktop } = useWindowSize();
 
   // Calculate center of mass for camera target
   const center = useMemo(() => {
@@ -107,6 +211,13 @@ export default function App() {
     loadData();
   }, []);
 
+  // Close mobile panel when switching to desktop
+  useEffect(() => {
+    if (isDesktop) {
+      setMobilePanel('none');
+    }
+  }, [isDesktop]);
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -133,131 +244,146 @@ export default function App() {
       height: '100vh', 
       position: 'relative',
       background: '#050508',
+      overflow: 'hidden',
     }}>
-      {/* 3D Canvas - Center */}
-      <Canvas
-        camera={{ position: [0, 0, 25], fov: 60 }}
-        gl={{ 
-          antialias: true, 
-          alpha: false,
-          powerPreference: 'high-performance',
-        }}
-        style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #050508 100%)' }}
-        dpr={[1, 2]}
-      >
-        <Suspense fallback={null}>
-          {/* Lighting */}
-          <ambientLight intensity={0.2} />
-          <pointLight position={[15, 15, 15]} intensity={0.8} color="#00ffff" />
-          <pointLight position={[-15, -15, -15]} intensity={0.4} color="#ff00ff" />
-          <pointLight position={[0, 0, 20]} intensity={0.3} color="#ffffff" />
-          
-          {/* Star Background */}
-          <Stars 
-            radius={150} 
-            depth={80} 
-            count={8000} 
-            factor={5} 
-            saturation={0.2} 
-            fade 
-            speed={0.5}
-          />
-          
-          {/* Ambient Particles */}
-          <ParticleField count={300} color="#00ffff" size={0.02} speed={0.1} radius={25} />
-          <ParticleField count={200} color="#ff00ff" size={0.015} speed={0.15} radius={20} />
-          
-          {/* Skill Nodes */}
-          <SkillNodes 
-            nodes={filteredNodes}
-            selectedNode={selectedNode}
-            hoveredNode={hoveredNode}
-            onSelect={setSelectedNode}
-            onHover={setHoveredNode}
-          />
-          
-          {/* Connection Lines */}
-          <ConnectionLines 
-            edges={filteredEdges}
-            nodes={data.nodes}
-            selectedNode={selectedNode}
-            hoveredNode={hoveredNode}
-          />
-          
-          {/* Controls */}
-          <OrbitControls 
-            enablePan={true}
-            enableZoom={true}
-            enableRotate={true}
-            autoRotate={!selectedNode && !hoveredNode}
-            autoRotateSpeed={0.3}
-            maxDistance={50}
-            minDistance={5}
-            dampingFactor={0.05}
-            enableDamping
-            target={[center.x, center.y, center.z]}
-          />
-          
-          {/* Post-processing Effects */}
-          <EffectComposer>
-            <Bloom 
-              luminanceThreshold={0.1}
-              luminanceSmoothing={0.9}
-              intensity={2}
-              mipmapBlur
+      {/* 3D Canvas - Responsive Height */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: isMobile ? '60px' : 0,
+      }}>
+        <Canvas
+          camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
+          gl={{ 
+            antialias: true, 
+            alpha: false,
+            powerPreference: 'high-performance',
+          }}
+          style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #050508 100%)' }}
+          dpr={[1, isMobile ? 1.5 : 2]}
+        >
+          <Suspense fallback={null}>
+            {/* Lighting */}
+            <ambientLight intensity={0.2} />
+            <pointLight position={[15, 15, 15]} intensity={0.8} color="#00ffff" />
+            <pointLight position={[-15, -15, -15]} intensity={0.4} color="#ff00ff" />
+            <pointLight position={[0, 0, 20]} intensity={0.3} color="#ffffff" />
+            
+            {/* Star Background */}
+            <Stars 
+              radius={150} 
+              depth={80} 
+              count={isMobile ? 4000 : 8000} 
+              factor={5} 
+              saturation={0.2} 
+              fade 
+              speed={0.5}
             />
-            <ChromaticAberration
-              blendFunction={BlendFunction.NORMAL}
-              offset={[0.0003, 0.0003]}
+            
+            {/* Ambient Particles - Reduced on mobile */}
+            <ParticleField count={isMobile ? 150 : 300} color="#00ffff" size={0.02} speed={0.1} radius={25} />
+            {!isMobile && <ParticleField count={200} color="#ff00ff" size={0.015} speed={0.15} radius={20} />}
+            
+            {/* Skill Nodes */}
+            <SkillNodes 
+              nodes={filteredNodes}
+              selectedNode={selectedNode}
+              hoveredNode={hoveredNode}
+              onSelect={setSelectedNode}
+              onHover={setHoveredNode}
             />
-            <Vignette
-              offset={0.3}
-              darkness={0.7}
-              blendFunction={BlendFunction.NORMAL}
+            
+            {/* Connection Lines */}
+            <ConnectionLines 
+              edges={filteredEdges}
+              nodes={data.nodes}
+              selectedNode={selectedNode}
+              hoveredNode={hoveredNode}
             />
-          </EffectComposer>
-        </Suspense>
-      </Canvas>
+            
+            {/* Controls */}
+            <OrbitControls 
+              enablePan={!isMobile}
+              enableZoom={true}
+              enableRotate={true}
+              autoRotate={!selectedNode && !hoveredNode}
+              autoRotateSpeed={0.3}
+              maxDistance={isMobile ? 60 : 50}
+              minDistance={isMobile ? 10 : 5}
+              dampingFactor={0.05}
+              enableDamping
+              target={[center.x, center.y, center.z]}
+              touches={{
+                ONE: 1, // ROTATE
+                TWO: 512, // DOLLY_PAN
+              }}
+            />
+            
+            {/* Post-processing Effects - Reduced on mobile */}
+            <EffectComposer>
+              <Bloom 
+                luminanceThreshold={0.1}
+                luminanceSmoothing={0.9}
+                intensity={isMobile ? 1.5 : 2}
+                mipmapBlur
+              />
+              {!isMobile && (
+                <ChromaticAberration
+                  blendFunction={BlendFunction.NORMAL}
+                  offset={[0.0003, 0.0003]}
+                />
+              )}
+              <Vignette
+                offset={0.3}
+                darkness={isMobile ? 0.5 : 0.7}
+                blendFunction={BlendFunction.NORMAL}
+              />
+            </EffectComposer>
+          </Suspense>
+        </Canvas>
+      </div>
       
       {/* ═══════════════════════════════════════════════════════════
-          HEADER - Top Bar with Logo + Key Metrics
+          HEADER - Responsive
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        height: '72px',
-        background: 'linear-gradient(180deg, rgba(5,5,8,0.95) 0%, rgba(5,5,8,0) 100%)',
+        height: isMobile ? '56px' : '72px',
+        background: 'linear-gradient(180deg, rgba(5,5,8,0.98) 0%, rgba(5,5,8,0) 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: isMobile ? '0 12px' : '0 24px',
         zIndex: 100,
       }}>
         {/* Left: Logo */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '14px',
+          gap: isMobile ? '8px' : '14px',
         }}>
           <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
+            width: isMobile ? '36px' : '44px',
+            height: isMobile ? '36px' : '44px',
+            borderRadius: isMobile ? '10px' : '12px',
             background: 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)',
             border: '1px solid rgba(255,255,255,0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '22px',
+            fontSize: isMobile ? '18px' : '22px',
             boxShadow: '0 0 30px rgba(0,255,255,0.2)',
           }}>
             ⚔️
           </div>
           <div>
             <h1 style={{ 
-              fontSize: '24px', 
+              fontSize: isMobile ? '18px' : '24px', 
               fontWeight: 800,
               background: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #ffff00 100%)',
               WebkitBackgroundClip: 'text',
@@ -268,94 +394,183 @@ export default function App() {
             }}>
               SkillRespec
             </h1>
-            <p style={{ 
-              fontSize: '11px', 
-              color: '#555', 
-              marginTop: '2px',
-              fontFamily: '"JetBrains Mono", monospace',
-            }}>
-              AI Skill Tree Analyzer
-            </p>
+            {!isMobile && (
+              <p style={{ 
+                fontSize: '11px', 
+                color: '#555', 
+                marginTop: '2px',
+                fontFamily: '"JetBrains Mono", monospace',
+              }}>
+                AI Skill Tree Analyzer
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Center: Key Metrics */}
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-        }}>
-          <HeaderStat 
-            icon="🎯" 
-            value={`${healthScore}%`}
-            label="Health Score" 
-            color="#10b981" 
-          />
-          <HeaderStat 
-            icon="📦" 
-            value={data.nodes.length}
-            label="Skills" 
-            color="#00ffff" 
-          />
-          <HeaderStat 
-            icon="🔗" 
-            value={data.edges.length}
-            label="Connections" 
-            color="#ff00ff" 
-          />
-        </div>
+        {/* Center: Key Metrics - Hidden on mobile */}
+        {!isMobile && (
+          <div style={{
+            display: 'flex',
+            gap: isTablet ? '8px' : '12px',
+          }}>
+            <HeaderStat 
+              icon="🎯" 
+              value={`${healthScore}%`}
+              label="Health Score" 
+              color="#10b981"
+              compact={isTablet}
+            />
+            <HeaderStat 
+              icon="📦" 
+              value={data.nodes.length}
+              label="Skills" 
+              color="#00ffff"
+              compact={isTablet}
+            />
+            <HeaderStat 
+              icon="🔗" 
+              value={data.edges.length}
+              label="Connections" 
+              color="#ff00ff"
+              compact={isTablet}
+            />
+          </div>
+        )}
 
-        {/* Right: Quick Actions */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-        }}>
-          <button style={{
-            padding: '8px 16px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            color: '#888',
-            fontSize: '12px',
-            fontWeight: 600,
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
+        {/* Mobile: Compact metrics */}
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            gap: '6px',
           }}>
-            📤 Export
-          </button>
-          <button style={{
-            padding: '8px 16px',
-            background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            color: '#fff',
-            fontSize: '12px',
-            fontWeight: 600,
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
+            <HeaderStat icon="🎯" value={`${healthScore}%`} label="" color="#10b981" compact />
+            <HeaderStat icon="📦" value={data.nodes.length} label="" color="#00ffff" compact />
+          </div>
+        )}
+
+        {/* Right: Quick Actions - Hidden on mobile */}
+        {!isMobile && (
+          <div style={{
+            display: 'flex',
+            gap: '8px',
           }}>
-            ⚡ Respec
-          </button>
-        </div>
+            <button style={{
+              padding: isTablet ? '6px 12px' : '8px 16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: '#888',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}>
+              📤 Export
+            </button>
+            <button style={{
+              padding: isTablet ? '6px 12px' : '8px 16px',
+              background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}>
+              ⚡ Respec
+            </button>
+          </div>
+        )}
       </div>
       
       {/* ═══════════════════════════════════════════════════════════
-          LEFT PANEL - Categories Filter
+          LEFT PANEL - Categories (Desktop & Tablet only)
       ═══════════════════════════════════════════════════════════ */}
-      <CategoryLegend 
-        clusters={data.clusters}
-        selectedCategory={selectedCategory}
-        onSelect={setSelectedCategory}
-      />
+      {!isMobile && (
+        <CategoryLegend 
+          clusters={data.clusters}
+          selectedCategory={selectedCategory}
+          onSelect={setSelectedCategory}
+          compact={isTablet}
+        />
+      )}
       
       {/* ═══════════════════════════════════════════════════════════
-          RIGHT PANEL - Recommendations
+          RIGHT PANEL - Recommendations (Desktop only)
       ═══════════════════════════════════════════════════════════ */}
-      <RecommendationsPanel />
+      {isDesktop && <RecommendationsPanel />}
       
       {/* ═══════════════════════════════════════════════════════════
-          INFO PANEL - Node Details (Floating)
+          BOTTOM PANEL - Recommendations (Tablet)
+      ═══════════════════════════════════════════════════════════ */}
+      {isTablet && <RecommendationsPanel position="bottom" />}
+      
+      {/* ═══════════════════════════════════════════════════════════
+          MOBILE PANELS - Slide-up sheets
+      ═══════════════════════════════════════════════════════════ */}
+      {isMobile && mobilePanel === 'categories' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '60px',
+          left: 0,
+          right: 0,
+          background: 'rgba(10, 10, 18, 0.98)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '20px 20px 0 0',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: 'none',
+          maxHeight: '50vh',
+          overflowY: 'auto',
+          zIndex: 150,
+          animation: 'slideUp 0.3s ease-out',
+        }}>
+          <CategoryLegend 
+            clusters={data.clusters}
+            selectedCategory={selectedCategory}
+            onSelect={(cat) => {
+              setSelectedCategory(cat);
+              setMobilePanel('none');
+            }}
+            mobile
+          />
+        </div>
+      )}
+      
+      {isMobile && mobilePanel === 'recommendations' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '60px',
+          left: 0,
+          right: 0,
+          background: 'rgba(10, 10, 18, 0.98)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '20px 20px 0 0',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: 'none',
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          zIndex: 150,
+          animation: 'slideUp 0.3s ease-out',
+        }}>
+          <RecommendationsPanel position="mobile" />
+        </div>
+      )}
+      
+      {/* ═══════════════════════════════════════════════════════════
+          MOBILE BOTTOM NAVIGATION
+      ═══════════════════════════════════════════════════════════ */}
+      {isMobile && (
+        <MobileNavToggle 
+          activePanel={mobilePanel} 
+          onToggle={setMobilePanel} 
+        />
+      )}
+      
+      {/* ═══════════════════════════════════════════════════════════
+          INFO PANEL - Node Details (Floating, responsive)
       ═══════════════════════════════════════════════════════════ */}
       <InfoPanel 
         node={selectedNode || hoveredNode}
@@ -363,54 +578,59 @@ export default function App() {
         edges={data.edges}
         metrics={data.metrics}
         onClose={() => setSelectedNode(null)}
+        mobile={isMobile}
       />
       
       {/* ═══════════════════════════════════════════════════════════
-          FOOTER - Instructions
+          FOOTER - Instructions (Desktop/Tablet only)
       ═══════════════════════════════════════════════════════════ */}
-      <div style={{
-        position: 'absolute',
-        bottom: 20,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        gap: '24px',
-        padding: '10px 20px',
-        background: 'rgba(10, 10, 20, 0.85)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '24px',
-        border: '1px solid rgba(255,255,255,0.08)',
-      }}>
-        {[
-          { icon: '🖱️', label: 'Drag to rotate' },
-          { icon: '🔍', label: 'Scroll to zoom' },
-          { icon: '👆', label: 'Click for details' },
-        ].map(({ icon, label }) => (
-          <div key={label} style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            fontSize: '11px',
-            color: '#666',
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-          }}>
-            <span>{icon}</span>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
+      {!isMobile && (
+        <div style={{
+          position: 'absolute',
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: isTablet ? '16px' : '24px',
+          padding: '10px 20px',
+          background: 'rgba(10, 10, 20, 0.85)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          {[
+            { icon: '🖱️', label: 'Drag to rotate' },
+            { icon: '🔍', label: 'Scroll to zoom' },
+            { icon: '👆', label: 'Click for details' },
+          ].map(({ icon, label }) => (
+            <div key={label} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              fontSize: '11px',
+              color: '#666',
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+            }}>
+              <span>{icon}</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Powered by badge */}
-      <div style={{
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        fontSize: '10px',
-        color: '#333',
-        fontFamily: '"JetBrains Mono", monospace',
-      }}>
-        Powered by <span style={{ color: '#555' }}>Three.js + React</span>
-      </div>
+      {/* Powered by badge - Desktop only */}
+      {isDesktop && (
+        <div style={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          fontSize: '10px',
+          color: '#333',
+          fontFamily: '"JetBrains Mono", monospace',
+        }}>
+          Powered by <span style={{ color: '#555' }}>Three.js + React</span>
+        </div>
+      )}
     </div>
   );
 }

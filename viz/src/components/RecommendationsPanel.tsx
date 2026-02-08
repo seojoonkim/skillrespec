@@ -8,15 +8,16 @@ interface TabProps {
   children: React.ReactNode;
   count?: number;
   color: string;
+  compact?: boolean;
 }
 
-function Tab({ active, onClick, children, count, color }: TabProps) {
+function Tab({ active, onClick, children, count, color, compact }: TabProps) {
   return (
     <button
       onClick={onClick}
       style={{
         flex: 1,
-        padding: '10px 8px',
+        padding: compact ? '8px 6px' : '10px 8px',
         background: active ? `${color}15` : 'transparent',
         border: 'none',
         borderBottom: active ? `2px solid ${color}` : '2px solid transparent',
@@ -49,7 +50,7 @@ function Tab({ active, onClick, children, count, color }: TabProps) {
   );
 }
 
-function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
+function DiagnosisSection({ items, compact }: { items: DiagnosisItem[]; compact?: boolean }) {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success': return '✅';
@@ -69,7 +70,7 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
   };
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: compact ? '12px' : '16px' }}>
       <div style={{
         fontSize: '11px',
         fontWeight: 700,
@@ -80,12 +81,12 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
       }}>
         📊 스킬셋 진단
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? '8px' : '10px' }}>
         {items.map((item, i) => (
           <div
             key={i}
             style={{
-              padding: '12px',
+              padding: compact ? '10px' : '12px',
               background: `${getColor(item.type)}10`,
               border: `1px solid ${getColor(item.type)}30`,
               borderRadius: '8px',
@@ -98,9 +99,9 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
               gap: '8px',
               marginBottom: '4px',
             }}>
-              <span style={{ fontSize: '14px' }}>{getIcon(item.type)}</span>
+              <span style={{ fontSize: compact ? '12px' : '14px' }}>{getIcon(item.type)}</span>
               <span style={{
-                fontSize: '12px',
+                fontSize: compact ? '11px' : '12px',
                 fontWeight: 600,
                 color: getColor(item.type),
                 fontFamily: '"Plus Jakarta Sans", sans-serif',
@@ -109,7 +110,7 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
               </span>
             </div>
             <div style={{
-              fontSize: '11px',
+              fontSize: compact ? '10px' : '11px',
               color: '#888',
               marginLeft: '22px',
               fontFamily: '"Plus Jakarta Sans", sans-serif',
@@ -123,7 +124,7 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
   );
 }
 
-function InstallSection({ items }: { items: InstallItem[] }) {
+function InstallSection({ items, compact }: { items: InstallItem[]; compact?: boolean }) {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return '#10b981';
@@ -134,7 +135,7 @@ function InstallSection({ items }: { items: InstallItem[] }) {
   };
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: compact ? '12px' : '16px' }}>
       <div style={{
         fontSize: '11px',
         fontWeight: 700,
@@ -150,20 +151,12 @@ function InstallSection({ items }: { items: InstallItem[] }) {
           <div
             key={i}
             style={{
-              padding: '12px',
+              padding: compact ? '10px' : '12px',
               background: 'rgba(16, 185, 129, 0.08)',
               border: '1px solid rgba(16, 185, 129, 0.2)',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
-              e.currentTarget.style.transform = 'translateX(4px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
-              e.currentTarget.style.transform = 'translateX(0)';
             }}
           >
             <div style={{
@@ -177,9 +170,9 @@ function InstallSection({ items }: { items: InstallItem[] }) {
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <span style={{ fontSize: '14px' }}>📦</span>
+                <span style={{ fontSize: compact ? '12px' : '14px' }}>📦</span>
                 <span style={{
-                  fontSize: '13px',
+                  fontSize: compact ? '12px' : '13px',
                   fontWeight: 600,
                   color: '#10b981',
                   fontFamily: '"JetBrains Mono", monospace',
@@ -201,30 +194,13 @@ function InstallSection({ items }: { items: InstallItem[] }) {
               </span>
             </div>
             <div style={{
-              fontSize: '11px',
+              fontSize: compact ? '10px' : '11px',
               color: '#888',
               marginLeft: '22px',
               fontFamily: '"Plus Jakarta Sans", sans-serif',
             }}>
               {item.reason}
             </div>
-            {item.category && (
-              <div style={{
-                marginTop: '6px',
-                marginLeft: '22px',
-              }}>
-                <span style={{
-                  fontSize: '9px',
-                  color: '#666',
-                  background: 'rgba(255,255,255,0.05)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontFamily: '"JetBrains Mono", monospace',
-                }}>
-                  {item.category}
-                </span>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -232,9 +208,9 @@ function InstallSection({ items }: { items: InstallItem[] }) {
   );
 }
 
-function RemoveSection({ items }: { items: RemoveItem[] }) {
+function RemoveSection({ items, compact }: { items: RemoveItem[]; compact?: boolean }) {
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: compact ? '12px' : '16px' }}>
       <div style={{
         fontSize: '11px',
         fontWeight: 700,
@@ -250,20 +226,12 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
           <div
             key={i}
             style={{
-              padding: '12px',
+              padding: compact ? '10px' : '12px',
               background: 'rgba(239, 68, 68, 0.08)',
               border: '1px solid rgba(239, 68, 68, 0.2)',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-              e.currentTarget.style.transform = 'translateX(4px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-              e.currentTarget.style.transform = 'translateX(0)';
             }}
           >
             <div style={{
@@ -272,9 +240,9 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
               gap: '8px',
               marginBottom: '6px',
             }}>
-              <span style={{ fontSize: '14px' }}>🗑️</span>
+              <span style={{ fontSize: compact ? '12px' : '14px' }}>🗑️</span>
               <span style={{
-                fontSize: '13px',
+                fontSize: compact ? '12px' : '13px',
                 fontWeight: 600,
                 color: '#ef4444',
                 fontFamily: '"JetBrains Mono", monospace',
@@ -283,24 +251,13 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
               </span>
             </div>
             <div style={{
-              fontSize: '11px',
+              fontSize: compact ? '10px' : '11px',
               color: '#888',
               marginLeft: '22px',
               fontFamily: '"Plus Jakarta Sans", sans-serif',
             }}>
               {item.reason}
             </div>
-            {item.conflictsWith && (
-              <div style={{
-                marginTop: '6px',
-                marginLeft: '22px',
-                fontSize: '10px',
-                color: '#666',
-                fontFamily: '"JetBrains Mono", monospace',
-              }}>
-                ↔ {item.conflictsWith}와 충돌
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -308,9 +265,9 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
   );
 }
 
-function UpdateSection({ items }: { items: UpdateItem[] }) {
+function UpdateSection({ items, compact }: { items: UpdateItem[]; compact?: boolean }) {
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: compact ? '12px' : '16px' }}>
       <div style={{
         fontSize: '11px',
         fontWeight: 700,
@@ -326,20 +283,12 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
           <div
             key={i}
             style={{
-              padding: '12px',
+              padding: compact ? '10px' : '12px',
               background: 'rgba(59, 130, 246, 0.08)',
               border: '1px solid rgba(59, 130, 246, 0.2)',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-              e.currentTarget.style.transform = 'translateX(4px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
-              e.currentTarget.style.transform = 'translateX(0)';
             }}
           >
             <div style={{
@@ -353,9 +302,9 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <span style={{ fontSize: '14px' }}>⬆️</span>
+                <span style={{ fontSize: compact ? '12px' : '14px' }}>⬆️</span>
                 <span style={{
-                  fontSize: '13px',
+                  fontSize: compact ? '12px' : '13px',
                   fontWeight: 600,
                   color: '#3b82f6',
                   fontFamily: '"JetBrains Mono", monospace',
@@ -376,7 +325,7 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
               </div>
             </div>
             <div style={{
-              fontSize: '11px',
+              fontSize: compact ? '10px' : '11px',
               color: '#888',
               marginLeft: '22px',
               fontFamily: '"Plus Jakarta Sans", sans-serif',
@@ -390,9 +339,178 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
   );
 }
 
-export default function RecommendationsPanel() {
+interface RecommendationsPanelProps {
+  position?: 'right' | 'bottom' | 'mobile';
+}
+
+export default function RecommendationsPanel({ position = 'right' }: RecommendationsPanelProps) {
   const [activeTab, setActiveTab] = useState<'diagnosis' | 'install' | 'remove' | 'update'>('diagnosis');
 
+  const isBottom = position === 'bottom';
+  const isMobile = position === 'mobile';
+  const compact = isBottom || isMobile;
+
+  // Bottom position styles (tablet)
+  if (isBottom) {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: '80px',
+        left: '220px',
+        right: '20px',
+        height: '200px',
+        background: 'rgba(10, 10, 18, 0.95)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.4)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Tabs */}
+        <div style={{
+          display: 'flex',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          flexShrink: 0,
+        }}>
+          <Tab active={activeTab === 'diagnosis'} onClick={() => setActiveTab('diagnosis')} count={recommendations.diagnosis.length} color="#a855f7" compact>
+            📊 진단
+          </Tab>
+          <Tab active={activeTab === 'install'} onClick={() => setActiveTab('install')} count={recommendations.install.length} color="#10b981" compact>
+            ✅ 설치
+          </Tab>
+          <Tab active={activeTab === 'remove'} onClick={() => setActiveTab('remove')} count={recommendations.remove.length} color="#ef4444" compact>
+            ❌ 제거
+          </Tab>
+          <Tab active={activeTab === 'update'} onClick={() => setActiveTab('update')} count={recommendations.update.length} color="#3b82f6" compact>
+            🔄 업데이트
+          </Tab>
+        </div>
+
+        {/* Content - Horizontal scroll for bottom */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}>
+          {activeTab === 'diagnosis' && <DiagnosisSection items={recommendations.diagnosis} compact />}
+          {activeTab === 'install' && <InstallSection items={recommendations.install} compact />}
+          {activeTab === 'remove' && <RemoveSection items={recommendations.remove} compact />}
+          {activeTab === 'update' && <UpdateSection items={recommendations.update} compact />}
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile position styles
+  if (isMobile) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Handle */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '12px',
+        }}>
+          <div style={{
+            width: '40px',
+            height: '4px',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '2px',
+          }} />
+        </div>
+
+        {/* Header */}
+        <div style={{
+          padding: '0 16px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <span style={{ fontSize: '20px' }}>🎯</span>
+          <div>
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#fff',
+              margin: 0,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+            }}>
+              스킬 추천
+            </h2>
+            <p style={{
+              fontSize: '11px',
+              color: '#666',
+              margin: 0,
+              fontFamily: '"JetBrains Mono", monospace',
+            }}>
+              AI 기반 최적화 제안
+            </p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{
+          display: 'flex',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          margin: '0 12px',
+        }}>
+          <Tab active={activeTab === 'diagnosis'} onClick={() => setActiveTab('diagnosis')} count={recommendations.diagnosis.length} color="#a855f7" compact>
+            📊
+          </Tab>
+          <Tab active={activeTab === 'install'} onClick={() => setActiveTab('install')} count={recommendations.install.length} color="#10b981" compact>
+            ✅
+          </Tab>
+          <Tab active={activeTab === 'remove'} onClick={() => setActiveTab('remove')} count={recommendations.remove.length} color="#ef4444" compact>
+            ❌
+          </Tab>
+          <Tab active={activeTab === 'update'} onClick={() => setActiveTab('update')} count={recommendations.update.length} color="#3b82f6" compact>
+            🔄
+          </Tab>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          overflowY: 'auto',
+          maxHeight: 'calc(60vh - 120px)',
+        }}>
+          {activeTab === 'diagnosis' && <DiagnosisSection items={recommendations.diagnosis} compact />}
+          {activeTab === 'install' && <InstallSection items={recommendations.install} compact />}
+          {activeTab === 'remove' && <RemoveSection items={recommendations.remove} compact />}
+          {activeTab === 'update' && <UpdateSection items={recommendations.update} compact />}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '12px 16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+        }}>
+          <button
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '10px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              cursor: 'pointer',
+            }}
+          >
+            ⚡ 모든 추천 적용하기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: Right panel (desktop)
   return (
     <div style={{
       position: 'absolute',
@@ -459,36 +577,16 @@ export default function RecommendationsPanel() {
         display: 'flex',
         borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
       }}>
-        <Tab
-          active={activeTab === 'diagnosis'}
-          onClick={() => setActiveTab('diagnosis')}
-          count={recommendations.diagnosis.length}
-          color="#a855f7"
-        >
+        <Tab active={activeTab === 'diagnosis'} onClick={() => setActiveTab('diagnosis')} count={recommendations.diagnosis.length} color="#a855f7">
           📊
         </Tab>
-        <Tab
-          active={activeTab === 'install'}
-          onClick={() => setActiveTab('install')}
-          count={recommendations.install.length}
-          color="#10b981"
-        >
+        <Tab active={activeTab === 'install'} onClick={() => setActiveTab('install')} count={recommendations.install.length} color="#10b981">
           ✅
         </Tab>
-        <Tab
-          active={activeTab === 'remove'}
-          onClick={() => setActiveTab('remove')}
-          count={recommendations.remove.length}
-          color="#ef4444"
-        >
+        <Tab active={activeTab === 'remove'} onClick={() => setActiveTab('remove')} count={recommendations.remove.length} color="#ef4444">
           ❌
         </Tab>
-        <Tab
-          active={activeTab === 'update'}
-          onClick={() => setActiveTab('update')}
-          count={recommendations.update.length}
-          color="#3b82f6"
-        >
+        <Tab active={activeTab === 'update'} onClick={() => setActiveTab('update')} count={recommendations.update.length} color="#3b82f6">
           🔄
         </Tab>
       </div>
@@ -524,12 +622,6 @@ export default function RecommendationsPanel() {
             fontFamily: '"Plus Jakarta Sans", sans-serif',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.3) 0%, rgba(255,0,255,0.3) 100%)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)';
           }}
         >
           ⚡ 모든 추천 적용하기
