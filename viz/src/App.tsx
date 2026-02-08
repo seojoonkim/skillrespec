@@ -332,7 +332,7 @@ export default function App() {
                   color: theme.colors.textMuted,
                   fontWeight: theme.fontWeight.normal,
                 }}>
-                  Diagnostic Report
+                  Report
                 </span>
               </div>
               <div style={{
