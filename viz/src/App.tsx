@@ -360,9 +360,9 @@ export default function App() {
             flex: 1,
             display: 'grid',
             gridTemplateColumns: isDesktop 
-              ? '220px 1fr 340px' 
+              ? '220px 1fr 420px' 
               : isTablet 
-                ? '200px 1fr 300px' 
+                ? '200px 1fr 360px' 
                 : '1fr',
             overflow: 'hidden',
             minHeight: 0,

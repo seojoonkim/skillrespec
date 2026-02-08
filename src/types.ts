@@ -137,4 +137,6 @@ export interface VizMetrics {
   overlapCoefficient: number;
   coverageScores: Record<string, number>;
   uniquenessIndex: number;
+  categoryBalance?: number;
+  avgDepth?: number;
 }
