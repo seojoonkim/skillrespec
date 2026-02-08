@@ -22,26 +22,28 @@ function Tab({
       onClick={onClick}
       style={{
         flex: 1,
-        padding: '10px 8px',
+        padding: '10px 6px',
         background: 'transparent',
         border: 'none',
         borderBottom: `2px solid ${active ? theme.colors.accent : 'transparent'}`,
         color: active ? theme.colors.textPrimary : theme.colors.textMuted,
-        fontSize: theme.fontSize.sm,
+        fontSize: theme.fontSize.xs,
         fontWeight: theme.fontWeight.medium,
         fontFamily: theme.fonts.sans,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '6px',
+        gap: '4px',
         transition: 'color 0.15s ease',
+        whiteSpace: 'nowrap',
+        minWidth: 0,
       }}
     >
       {children}
       {count !== undefined && count > 0 && (
         <span style={{
-          fontSize: theme.fontSize.xs,
+          fontSize: '10px',
           color: active ? theme.colors.accent : theme.colors.textMuted,
           fontFamily: theme.fonts.mono,
         }}>
@@ -263,6 +265,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
     Object.assign(containerStyle, {
       width: '100%',
       height: '100%',
+      minWidth: '280px',
     });
   } else if (isBottom) {
     Object.assign(containerStyle, {

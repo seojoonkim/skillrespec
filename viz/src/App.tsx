@@ -25,11 +25,13 @@ type ViewMode = '3d' | 'report';
 function StatBadge({ 
   value, 
   icon,
+  label,
   tooltip,
   accent = false,
 }: { 
   value: string | number; 
   icon: string;
+  label: string;
   tooltip: string;
   accent?: boolean;
 }) {
@@ -39,21 +41,28 @@ function StatBadge({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '3px',
-        padding: '2px 6px',
+        gap: '5px',
+        padding: '4px 10px',
         background: theme.colors.bgTertiary,
         borderRadius: theme.radius.sm,
         cursor: 'help',
       }}
     >
-      <span style={{ fontSize: '11px' }}>{icon}</span>
+      <span style={{ fontSize: '12px' }}>{icon}</span>
       <span style={{
-        fontSize: theme.fontSize.xs,
+        fontSize: theme.fontSize.sm,
         fontWeight: theme.fontWeight.semibold,
         color: accent ? theme.colors.accent : theme.colors.textPrimary,
         fontFamily: theme.fonts.mono,
       }}>
         {value}
+      </span>
+      <span style={{
+        fontSize: theme.fontSize.xs,
+        color: theme.colors.textMuted,
+        marginLeft: '2px',
+      }}>
+        {label}
       </span>
     </div>
   );
@@ -72,24 +81,25 @@ function ViewToggle({
   return (
     <div style={{
       display: 'flex',
-      background: theme.colors.bgTertiary,
-      borderRadius: theme.radius.sm,
-      padding: '2px',
+      background: '#1a1a1a',
+      borderRadius: theme.radius.md,
+      padding: '3px',
+      border: `1px solid ${theme.colors.border}`,
     }}>
       <button
         onClick={() => onChange('3d')}
         style={{
-          padding: '4px 10px',
-          background: mode === '3d' ? theme.colors.bgSecondary : 'transparent',
-          border: mode === '3d' ? `1px solid ${theme.colors.border}` : '1px solid transparent',
+          padding: '8px 16px',
+          background: mode === '3d' ? theme.colors.accent : 'transparent',
+          border: 'none',
           borderRadius: theme.radius.sm,
-          color: mode === '3d' ? theme.colors.textPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.xs,
-          fontWeight: theme.fontWeight.medium,
+          color: mode === '3d' ? '#fff' : theme.colors.textMuted,
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
@@ -98,17 +108,17 @@ function ViewToggle({
       <button
         onClick={() => onChange('report')}
         style={{
-          padding: '4px 10px',
-          background: mode === 'report' ? theme.colors.bgSecondary : 'transparent',
-          border: mode === 'report' ? `1px solid ${theme.colors.border}` : '1px solid transparent',
+          padding: '8px 16px',
+          background: mode === 'report' ? theme.colors.accent : 'transparent',
+          border: 'none',
           borderRadius: theme.radius.sm,
-          color: mode === 'report' ? theme.colors.textPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.xs,
-          fontWeight: theme.fontWeight.medium,
+          color: mode === 'report' ? '#fff' : theme.colors.textMuted,
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '6px',
           transition: 'all 0.15s ease',
         }}
       >
@@ -319,22 +329,25 @@ export default function App() {
             }} />
             <div style={{
               display: 'flex',
-              gap: '6px',
+              gap: '8px',
             }}>
               <StatBadge 
                 value={`${healthScore}%`}
                 icon="❤️"
+                label="Health"
                 tooltip={`Health: ${gradeInfo.text} - How balanced your skills are`}
                 accent 
               />
               <StatBadge 
                 value={data.nodes.length} 
-                icon="📦"
+                icon="🛡️"
+                label="Skills"
                 tooltip="Total skills installed"
               />
               <StatBadge 
                 value={data.edges.length} 
                 icon="🔗"
+                label="Connections"
                 tooltip="Connections between skills"
               />
             </div>
@@ -352,17 +365,18 @@ export default function App() {
           <button
             onClick={() => setShowReport(true)}
             style={{
-              padding: '4px 8px',
-              background: 'transparent',
+              padding: '8px 16px',
+              background: '#1a1a1a',
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.sm,
-              color: theme.colors.textSecondary,
-              fontSize: '11px',
-              fontWeight: theme.fontWeight.medium,
+              borderRadius: theme.radius.md,
+              color: theme.colors.textPrimary,
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.semibold,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '3px',
+              gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
             📄 Full
@@ -377,9 +391,9 @@ export default function App() {
         flex: 1,
         display: 'grid',
         gridTemplateColumns: isDesktop 
-          ? '180px 1fr 300px' 
+          ? '200px 1fr 320px' 
           : isTablet 
-            ? '140px 1fr 260px' 
+            ? '180px 1fr 280px' 
             : '1fr',
         overflow: 'hidden',
       }}>

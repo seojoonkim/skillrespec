@@ -118,6 +118,7 @@ export default function CategoryLegend({
     ? {
         width: '100%',
         height: '100%',
+        minWidth: '160px',
         background: 'transparent',
         display: 'flex',
         flexDirection: 'column',
@@ -128,6 +129,7 @@ export default function CategoryLegend({
         top: '80px',
         left: '20px',
         width: panelWidth,
+        minWidth: '160px',
         background: theme.colors.bgSecondary,
         border: `1px solid ${theme.colors.border}`,
         borderRadius: theme.radius.lg,
@@ -236,6 +238,8 @@ export default function CategoryLegend({
                 fontWeight: isSelected ? theme.fontWeight.medium : theme.fontWeight.normal,
                 color: isSelected ? theme.colors.textPrimary : theme.colors.textSecondary,
                 textTransform: 'capitalize',
+                wordBreak: 'break-word',
+                lineHeight: 1.3,
               }}>
                 {cluster.name}
               </span>
