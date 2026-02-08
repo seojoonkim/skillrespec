@@ -759,9 +759,9 @@ function calculateHealthScore(
 
 export interface ShareableData {
   v: number; // Version
-  i: string; // ID
+  i?: string; // ID
   t: number; // Timestamp
-  s: string[]; // Skill names (compressed)
+  s: string[] | Array<{ i: string; n: string; c: string; t: number; v?: string }>; // Skills
 }
 
 export function encodeResultForUrl(result: AnalysisResult): string {
@@ -782,20 +782,45 @@ export function encodeResultForUrl(result: AnalysisResult): string {
 
 export function decodeResultFromUrl(encoded: string): AnalysisResult | null {
   try {
-    const json = decodeURIComponent(atob(encoded));
+    // Try base64url decoding first (CLI format)
+    let json: string;
+    try {
+      // base64url uses - and _ instead of + and /
+      const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      json = decodeURIComponent(escape(atob(base64)));
+    } catch {
+      // Fall back to standard base64
+      json = decodeURIComponent(atob(encoded));
+    }
+    
     const data: ShareableData = JSON.parse(json);
     
     if (data.v !== 1) {
       console.warn('Unknown share format version:', data.v);
     }
     
-    const inputs: SkillInput[] = data.s.map(s => {
-      const [name, version] = s.split('@');
-      return { name, version };
-    });
+    let inputs: SkillInput[];
     
-    const result = analyzeSkills(inputs);
-    result.id = data.i;
+    // Check if it's CLI format (array of objects) or web format (array of strings)
+    if (data.s.length > 0 && typeof data.s[0] === 'object') {
+      // CLI format: array of { i, n, c, t, v }
+      inputs = (data.s as Array<{ i: string; n: string; c: string; t: number; v?: string }>).map(s => ({
+        name: s.i,
+        version: s.v,
+        category: s.c,
+        displayName: s.n,
+        tokens: s.t,
+      }));
+    } else {
+      // Web format: array of "name@version" strings
+      inputs = (data.s as string[]).map(s => {
+        const [name, version] = s.split('@');
+        return { name, version };
+      });
+    }
+    
+    const result = analyzeSkillsWithMetadata(inputs);
+    result.id = data.i || `sr_${data.t.toString(36)}`;
     result.createdAt = new Date(data.t).toISOString();
     
     return result;
@@ -803,4 +828,133 @@ export function decodeResultFromUrl(encoded: string): AnalysisResult | null {
     console.error('Failed to decode shared result:', error);
     return null;
   }
+}
+
+// Extended SkillInput for CLI metadata
+interface ExtendedSkillInput extends SkillInput {
+  category?: string;
+  displayName?: string;
+  tokens?: number;
+}
+
+// Analyze with pre-computed metadata from CLI
+function analyzeSkillsWithMetadata(inputs: ExtendedSkillInput[]): AnalysisResult {
+  const id = `sr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const createdAt = new Date().toISOString();
+  
+  // If inputs have full metadata from CLI, use it directly
+  const hasMetadata = inputs.some(i => i.category && i.tokens);
+  
+  if (hasMetadata) {
+    // Build from CLI metadata
+    return analyzeFromCLIData(inputs, id, createdAt);
+  }
+  
+  // Fall back to regular analysis
+  return analyzeSkills(inputs);
+}
+
+function analyzeFromCLIData(inputs: ExtendedSkillInput[], id: string, createdAt: string): AnalysisResult {
+  const nodes: SkillNode[] = [];
+  const categoryCount: Record<string, number> = {};
+  let totalTokens = 0;
+  let outdatedCount = 0;
+  
+  const maxTokens = Math.max(...inputs.map(i => i.tokens || 100), 1);
+  
+  for (const input of inputs) {
+    const skillId = input.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const category = input.category || 'utility';
+    categoryCount[category] = (categoryCount[category] || 0) + 1;
+    
+    const tokens = input.tokens || 100;
+    totalTokens += tokens;
+    
+    const knownSkill = KNOWN_SKILLS[skillId];
+    const latestVersion = knownSkill?.latestVersion;
+    const currentVersion = input.version;
+    
+    if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+      outdatedCount++;
+    }
+    
+    const health = getHealthStatus(currentVersion, latestVersion);
+    
+    nodes.push({
+      id: skillId,
+      name: input.displayName || input.name,
+      category,
+      x: 0, y: 0, z: 0,
+      tokens,
+      color: theme.categoryColors[category] || '#ffffff',
+      size: (tokens / maxTokens) * 0.8 + 0.2,
+      connections: [],
+      version: currentVersion,
+      latestVersion,
+      health,
+      connectionCount: 0,
+      vulnerability: {
+        score: 25,
+        level: 'low',
+        permissions: [],
+        trustSource: 'unknown',
+        handlesSensitiveData: false,
+      },
+    });
+  }
+  
+  // Generate edges
+  const edges = generateEdges(nodes);
+  
+  // Update connection counts
+  for (const edge of edges) {
+    const source = nodes.find(n => n.id === edge.source);
+    const target = nodes.find(n => n.id === edge.target);
+    if (source) {
+      source.connectionCount++;
+      if (!source.connections.includes(edge.target)) {
+        source.connections.push(edge.target);
+      }
+    }
+    if (target) {
+      target.connectionCount++;
+      if (!target.connections.includes(edge.source)) {
+        target.connections.push(edge.source);
+      }
+    }
+  }
+  
+  // Position nodes
+  positionNodes(nodes);
+  
+  // Build clusters
+  const clusters = buildClusters(nodes);
+  
+  // Calculate metrics
+  const metrics = calculateMetrics(nodes, edges);
+  
+  // Generate recommendations
+  const recommendations = generateRecommendations(nodes, categoryCount, []);
+  
+  // Calculate health score
+  const healthScore = calculateHealthScore(nodes, categoryCount, outdatedCount);
+  
+  const summary: AnalysisSummary = {
+    totalSkills: nodes.length,
+    knownSkills: nodes.length,
+    unknownSkills: 0,
+    totalTokens,
+    healthScore,
+    categories: categoryCount,
+    outdatedCount,
+    criticalSecurityCount: 0,
+  };
+  
+  return {
+    id,
+    createdAt,
+    data: { nodes, edges, clusters, metrics },
+    recommendations,
+    summary,
+  };
 }
