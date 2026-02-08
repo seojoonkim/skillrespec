@@ -56,6 +56,22 @@ function calculateConnectionStats(nodes: SkillNode[], edges: SkillEdge[]): Conne
   return { totalConnections, density, isolatedCount, hubSkill };
 }
 
+function getDensityLabel(density: 'high' | 'medium' | 'low'): string {
+  switch (density) {
+    case 'high': return 'High';
+    case 'medium': return 'Medium';
+    case 'low': return 'Low';
+  }
+}
+
+function getDensityColor(density: 'high' | 'medium' | 'low'): string {
+  switch (density) {
+    case 'high': return theme.colors.success;
+    case 'medium': return theme.colors.warning;
+    case 'low': return theme.colors.error;
+  }
+}
+
 export default function CategoryLegend({ 
   clusters, 
   selectedCategory, 
@@ -109,14 +125,15 @@ export default function CategoryLegend({
           <button
             onClick={() => onSelect(null)}
             style={{
-              padding: '8px 12px',
-              background: selectedCategory === null ? theme.colors.bgTertiary : 'transparent',
+              padding: '8px 14px',
+              background: selectedCategory === null ? theme.colors.bgElevated : 'transparent',
               border: `1px solid ${selectedCategory === null ? theme.colors.accent : theme.colors.border}`,
-              borderRadius: theme.radius.md,
+              borderRadius: theme.radius.full,
               color: selectedCategory === null ? theme.colors.accent : theme.colors.textSecondary,
               fontSize: theme.fontSize.sm,
               fontWeight: theme.fontWeight.medium,
               cursor: 'pointer',
+              transition: theme.transitions.fast,
             }}
           >
             All ({totalSkills})
@@ -131,10 +148,10 @@ export default function CategoryLegend({
                 key={cluster.id}
                 onClick={() => onSelect(isSelected ? null : cluster.category)}
                 style={{
-                  padding: '8px 12px',
-                  background: isSelected ? theme.colors.bgTertiary : 'transparent',
+                  padding: '8px 14px',
+                  background: isSelected ? theme.colors.bgElevated : 'transparent',
                   border: `1px solid ${isSelected ? color : theme.colors.border}`,
-                  borderRadius: theme.radius.md,
+                  borderRadius: theme.radius.full,
                   color: isSelected ? color : theme.colors.textSecondary,
                   fontSize: theme.fontSize.sm,
                   fontWeight: theme.fontWeight.medium,
@@ -142,6 +159,7 @@ export default function CategoryLegend({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
+                  transition: theme.transitions.fast,
                 }}
               >
                 <span style={{
@@ -149,6 +167,7 @@ export default function CategoryLegend({
                   height: '8px',
                   borderRadius: '50%',
                   background: color,
+                  boxShadow: isSelected ? `0 0 8px ${color}` : 'none',
                 }} />
                 {cluster.name}
                 <span style={{ color: theme.colors.textMuted }}>
@@ -196,20 +215,21 @@ export default function CategoryLegend({
       {/* Health & Connection Stats */}
       {hasStats && (
         <div style={{
-          padding: '12px 16px',
+          padding: '16px',
           borderBottom: `1px solid ${theme.colors.border}`,
+          background: theme.colors.bgTertiary,
         }}>
-          {/* Health */}
-          <div style={{ marginBottom: '12px' }}>
+          {/* Health Score */}
+          <div style={{ marginBottom: '16px' }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '4px',
+              gap: '10px',
+              marginBottom: '6px',
             }}>
-              <span style={{ fontSize: '14px' }}>❤️</span>
+              <span style={{ fontSize: '16px' }}>❤️</span>
               <span style={{
-                fontSize: theme.fontSize.md,
+                fontSize: theme.fontSize.xl,
                 fontWeight: theme.fontWeight.bold,
                 color: healthScore! >= 65 ? theme.colors.success : healthScore! >= 50 ? theme.colors.warning : theme.colors.error,
                 fontFamily: theme.fonts.mono,
@@ -228,9 +248,9 @@ export default function CategoryLegend({
               margin: 0,
               fontSize: theme.fontSize.xs,
               color: theme.colors.textMuted,
-              lineHeight: 1.4,
+              lineHeight: 1.5,
             }}>
-              전체 스킬셋 건강도 (중복도, 균형, 최신성)
+              Overall skill health (redundancy, balance, freshness)
             </p>
           </div>
           
@@ -239,12 +259,12 @@ export default function CategoryLegend({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '4px',
+              gap: '10px',
+              marginBottom: '6px',
             }}>
-              <span style={{ fontSize: '14px' }}>🔗</span>
+              <span style={{ fontSize: '16px' }}>🔗</span>
               <span style={{
-                fontSize: theme.fontSize.md,
+                fontSize: theme.fontSize.xl,
                 fontWeight: theme.fontWeight.bold,
                 color: theme.colors.accent,
                 fontFamily: theme.fonts.mono,
@@ -263,16 +283,14 @@ export default function CategoryLegend({
               margin: 0,
               fontSize: theme.fontSize.xs,
               color: theme.colors.textMuted,
-              lineHeight: 1.4,
+              lineHeight: 1.5,
             }}>
-              스킬 간 연결 수 · 밀도{' '}
+              Inter-skill connections · Density{' '}
               <span style={{ 
-                color: connectionStats.density === 'high' ? theme.colors.success : 
-                       connectionStats.density === 'medium' ? theme.colors.warning : 
-                       theme.colors.error 
+                color: getDensityColor(connectionStats.density),
+                fontWeight: theme.fontWeight.medium,
               }}>
-                {connectionStats.density === 'high' ? '높음' : 
-                 connectionStats.density === 'medium' ? '중간' : '낮음'}
+                {getDensityLabel(connectionStats.density)}
               </span>
             </p>
           </div>
@@ -281,7 +299,7 @@ export default function CategoryLegend({
 
       {/* Header */}
       <div style={{
-        padding: '12px 16px',
+        padding: '14px 16px',
         borderBottom: `1px solid ${theme.colors.border}`,
         display: 'flex',
         alignItems: 'center',
@@ -291,6 +309,7 @@ export default function CategoryLegend({
           fontSize: theme.fontSize.sm, 
           fontWeight: theme.fontWeight.semibold,
           color: theme.colors.textPrimary,
+          letterSpacing: '-0.01em',
         }}>
           {clusters.length} Categories
         </span>
@@ -313,7 +332,7 @@ export default function CategoryLegend({
             justifyContent: 'space-between',
             width: '100%',
             padding: '10px 12px',
-            background: selectedCategory === null ? theme.colors.bgTertiary : 'transparent',
+            background: selectedCategory === null ? theme.colors.bgElevated : 'transparent',
             border: 'none',
             borderRadius: theme.radius.md,
             cursor: 'pointer',
@@ -322,7 +341,17 @@ export default function CategoryLegend({
             fontWeight: theme.fontWeight.medium,
             textAlign: 'left',
             marginBottom: '4px',
-            transition: 'background 0.15s ease',
+            transition: theme.transitions.fast,
+          }}
+          onMouseEnter={(e) => {
+            if (selectedCategory !== null) {
+              e.currentTarget.style.background = theme.colors.bgHover;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedCategory !== null) {
+              e.currentTarget.style.background = 'transparent';
+            }
           }}
         >
           <span>All</span>
@@ -350,7 +379,7 @@ export default function CategoryLegend({
                 gap: '10px',
                 width: '100%',
                 padding: '10px 12px',
-                background: isSelected ? theme.colors.bgTertiary : 'transparent',
+                background: isSelected ? theme.colors.bgElevated : 'transparent',
                 border: 'none',
                 borderRadius: theme.radius.md,
                 cursor: 'pointer',
@@ -358,16 +387,28 @@ export default function CategoryLegend({
                 fontSize: theme.fontSize.sm,
                 textAlign: 'left',
                 marginBottom: '2px',
-                transition: 'background 0.15s ease',
+                transition: theme.transitions.fast,
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = theme.colors.bgHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = 'transparent';
+                }
               }}
             >
-              {/* Color dot */}
+              {/* Color dot with glow effect */}
               <span style={{
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
                 background: color,
+                boxShadow: isSelected ? `0 0 8px ${color}` : 'none',
                 flexShrink: 0,
+                transition: theme.transitions.fast,
               }} />
               
               {/* Name */}
@@ -393,7 +434,10 @@ export default function CategoryLegend({
                 <span style={{ color: isSelected ? color : theme.colors.textMuted }}>
                   {cluster.skills.length}
                 </span>
-                <span style={{ color: theme.colors.textMuted }}>
+                <span style={{ 
+                  color: theme.colors.textSubtle,
+                  fontSize: '10px',
+                }}>
                   {percentage}%
                 </span>
               </div>

@@ -4,25 +4,27 @@ import { theme } from '../styles/theme';
 import type { DiagnosisItem, InstallItem, RemoveItem, UpdateItem } from '../data/recommendations';
 
 // ═══════════════════════════════════════════════════════════
-// Tab Component
+// Tab Component - Modern pill style
 // ═══════════════════════════════════════════════════════════
 function Tab({ 
   active, 
   onClick, 
   children, 
-  count 
+  count,
+  icon,
 }: { 
   active: boolean; 
   onClick: () => void; 
   children: React.ReactNode; 
   count?: number;
+  icon?: string;
 }) {
   return (
     <button
       onClick={onClick}
       style={{
         flex: 1,
-        padding: '10px 6px',
+        padding: '12px 8px',
         background: 'transparent',
         border: 'none',
         borderBottom: `2px solid ${active ? theme.colors.accent : 'transparent'}`,
@@ -34,18 +36,29 @@ function Tab({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '4px',
-        transition: 'color 0.15s ease',
+        gap: '5px',
+        transition: theme.transitions.fast,
         whiteSpace: 'nowrap',
         minWidth: 0,
       }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.color = theme.colors.textSecondary;
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.color = theme.colors.textMuted;
+      }}
     >
+      {icon && <span style={{ fontSize: '12px' }}>{icon}</span>}
       {children}
       {count !== undefined && count > 0 && (
         <span style={{
           fontSize: '10px',
+          padding: '2px 6px',
+          borderRadius: theme.radius.full,
+          background: active ? theme.colors.accentMuted : theme.colors.bgTertiary,
           color: active ? theme.colors.accent : theme.colors.textMuted,
           fontFamily: theme.fonts.mono,
+          fontWeight: theme.fontWeight.semibold,
         }}>
           {count}
         </span>
@@ -55,14 +68,86 @@ function Tab({
 }
 
 // ═══════════════════════════════════════════════════════════
-// Section Components
+// Section Components - Clean card style
 // ═══════════════════════════════════════════════════════════
 function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
-  const getColor = (type: string) => {
+  const getStyles = (type: string) => {
     switch (type) {
-      case 'success': return theme.colors.success;
-      case 'warning': return theme.colors.warning;
-      case 'error': return theme.colors.error;
+      case 'success': return { color: theme.colors.success, bg: theme.colors.successGlow, icon: '✓' };
+      case 'warning': return { color: theme.colors.warning, bg: theme.colors.warningGlow, icon: '!' };
+      case 'error': return { color: theme.colors.error, bg: theme.colors.errorGlow, icon: '✕' };
+      default: return { color: theme.colors.textMuted, bg: theme.colors.bgTertiary, icon: '•' };
+    }
+  };
+
+  return (
+    <div style={{ padding: '16px' }}>
+      {items.map((item, i) => {
+        const style = getStyles(item.type);
+        return (
+          <div
+            key={i}
+            style={{
+              padding: '14px 16px',
+              marginBottom: '10px',
+              background: theme.colors.bgTertiary,
+              borderRadius: theme.radius.md,
+              borderLeft: `3px solid ${style.color}`,
+              transition: theme.transitions.fast,
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+            }}>
+              <span style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: theme.radius.full,
+                background: style.bg,
+                color: style.color,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: theme.fontWeight.bold,
+                flexShrink: 0,
+              }}>
+                {style.icon}
+              </span>
+              <div>
+                <div style={{
+                  fontSize: theme.fontSize.sm,
+                  fontWeight: theme.fontWeight.medium,
+                  color: theme.colors.textPrimary,
+                  marginBottom: '4px',
+                  lineHeight: 1.4,
+                }}>
+                  {item.text}
+                </div>
+                <div style={{
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  {item.detail}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function InstallSection({ items }: { items: InstallItem[] }) {
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'high': return theme.colors.error;
+      case 'medium': return theme.colors.warning;
+      case 'low': return theme.colors.info;
       default: return theme.colors.textMuted;
     }
   };
@@ -73,70 +158,39 @@ function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
         <div
           key={i}
           style={{
-            padding: '12px',
-            borderLeft: `2px solid ${getColor(item.type)}`,
-            marginBottom: '8px',
-            background: theme.colors.bgTertiary,
-          }}
-        >
-          <div style={{
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.medium,
-            color: theme.colors.textPrimary,
-            marginBottom: '4px',
-          }}>
-            {item.text}
-          </div>
-          <div style={{
-            fontSize: theme.fontSize.xs,
-            color: theme.colors.textMuted,
-          }}>
-            {item.detail}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function InstallSection({ items }: { items: InstallItem[] }) {
-  return (
-    <div style={{ padding: '16px' }}>
-      {items.map((item, i) => (
-        <div
-          key={i}
-          style={{
             display: 'flex',
             alignItems: 'flex-start',
             gap: '12px',
-            padding: '12px 0',
+            padding: '14px 0',
             borderBottom: i < items.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
           }}
         >
           <span style={{
             fontSize: theme.fontSize.xs,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.colors.success,
-            padding: '2px 6px',
-            background: theme.colors.accentMuted,
+            fontWeight: theme.fontWeight.bold,
+            color: getPriorityColor(item.priority),
+            padding: '3px 8px',
+            background: `${getPriorityColor(item.priority)}20`,
             borderRadius: theme.radius.sm,
             textTransform: 'uppercase',
+            letterSpacing: '0.04em',
           }}>
             {item.priority}
           </span>
           <div style={{ flex: 1 }}>
             <div style={{
               fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.medium,
+              fontWeight: theme.fontWeight.semibold,
               color: theme.colors.textPrimary,
               fontFamily: theme.fonts.mono,
               marginBottom: '4px',
             }}>
-              {item.id}
+              + {item.id}
             </div>
             <div style={{
               fontSize: theme.fontSize.xs,
               color: theme.colors.textMuted,
+              lineHeight: 1.5,
             }}>
               {item.reason}
             </div>
@@ -157,24 +211,34 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
             display: 'flex',
             alignItems: 'flex-start',
             gap: '12px',
-            padding: '12px 0',
+            padding: '14px 0',
             borderBottom: i < items.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
           }}
         >
-          <span style={{ color: theme.colors.error, fontSize: '14px' }}>−</span>
+          <span style={{ 
+            color: theme.colors.error, 
+            fontSize: '18px',
+            lineHeight: 1,
+            fontWeight: theme.fontWeight.bold,
+          }}>
+            −
+          </span>
           <div style={{ flex: 1 }}>
             <div style={{
               fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.medium,
+              fontWeight: theme.fontWeight.semibold,
               color: theme.colors.textPrimary,
               fontFamily: theme.fonts.mono,
               marginBottom: '4px',
+              textDecoration: 'line-through',
+              textDecorationColor: theme.colors.error,
             }}>
               {item.id}
             </div>
             <div style={{
               fontSize: theme.fontSize.xs,
               color: theme.colors.textMuted,
+              lineHeight: 1.5,
             }}>
               {item.reason}
             </div>
@@ -195,37 +259,50 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
             display: 'flex',
             alignItems: 'flex-start',
             gap: '12px',
-            padding: '12px 0',
+            padding: '14px 0',
             borderBottom: i < items.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
           }}
         >
-          <span style={{ color: theme.colors.info, fontSize: '14px' }}>↑</span>
+          <span style={{ 
+            color: theme.colors.info, 
+            fontSize: '16px',
+            lineHeight: 1,
+          }}>
+            ↑
+          </span>
           <div style={{ flex: 1 }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '4px',
+              gap: '10px',
+              marginBottom: '6px',
+              flexWrap: 'wrap',
             }}>
               <span style={{
                 fontSize: theme.fontSize.sm,
-                fontWeight: theme.fontWeight.medium,
+                fontWeight: theme.fontWeight.semibold,
                 color: theme.colors.textPrimary,
                 fontFamily: theme.fonts.mono,
               }}>
                 {item.id}
               </span>
-              <span style={{
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
                 fontSize: theme.fontSize.xs,
                 color: theme.colors.textMuted,
                 fontFamily: theme.fonts.mono,
               }}>
-                {item.from} → {item.to}
-              </span>
+                <span style={{ opacity: 0.6 }}>{item.from}</span>
+                <span style={{ color: theme.colors.info }}>→</span>
+                <span style={{ color: theme.colors.info, fontWeight: theme.fontWeight.medium }}>{item.to}</span>
+              </div>
             </div>
             <div style={{
               fontSize: theme.fontSize.xs,
               color: theme.colors.textMuted,
+              lineHeight: 1.5,
             }}>
               {item.reason}
             </div>
@@ -261,7 +338,6 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
   };
 
   if (embedded) {
-    // Fill parent container
     Object.assign(containerStyle, {
       width: '100%',
       height: '100%',
@@ -297,15 +373,21 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
       {/* Header */}
       {!isMobile && (
         <div style={{
-          padding: '16px',
+          padding: '18px 20px',
           borderBottom: `1px solid ${theme.colors.border}`,
+          background: theme.colors.bgTertiary,
         }}>
           <h2 style={{
             fontSize: theme.fontSize.md,
             fontWeight: theme.fontWeight.semibold,
             color: theme.colors.textPrimary,
             margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            letterSpacing: '-0.01em',
           }}>
+            <span style={{ fontSize: '16px' }}>🎯</span>
             Recommendations
           </h2>
         </div>
@@ -315,17 +397,38 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
       <div style={{
         display: 'flex',
         borderBottom: `1px solid ${theme.colors.border}`,
+        background: theme.colors.bgSecondary,
       }}>
-        <Tab active={activeTab === 'diagnosis'} onClick={() => setActiveTab('diagnosis')} count={recommendations.diagnosis.length}>
-          Diagnosis
+        <Tab 
+          active={activeTab === 'diagnosis'} 
+          onClick={() => setActiveTab('diagnosis')} 
+          count={recommendations.diagnosis.length}
+          icon="📊"
+        >
+          Analysis
         </Tab>
-        <Tab active={activeTab === 'install'} onClick={() => setActiveTab('install')} count={recommendations.install.length}>
+        <Tab 
+          active={activeTab === 'install'} 
+          onClick={() => setActiveTab('install')} 
+          count={recommendations.install.length}
+          icon="➕"
+        >
           Install
         </Tab>
-        <Tab active={activeTab === 'remove'} onClick={() => setActiveTab('remove')} count={recommendations.remove.length}>
+        <Tab 
+          active={activeTab === 'remove'} 
+          onClick={() => setActiveTab('remove')} 
+          count={recommendations.remove.length}
+          icon="➖"
+        >
           Remove
         </Tab>
-        <Tab active={activeTab === 'update'} onClick={() => setActiveTab('update')} count={recommendations.update.length}>
+        <Tab 
+          active={activeTab === 'update'} 
+          onClick={() => setActiveTab('update')} 
+          count={recommendations.update.length}
+          icon="↑"
+        >
           Update
         </Tab>
       </div>

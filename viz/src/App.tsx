@@ -32,48 +32,45 @@ function ViewToggle({
   return (
     <div style={{
       display: 'flex',
-      background: '#1a1a1a',
-      borderRadius: theme.radius.md,
-      padding: '3px',
-      border: `1px solid ${theme.colors.border}`,
+      background: 'rgba(255,255,255,0.03)',
+      borderRadius: '24px',
+      padding: '4px',
+      border: '1px solid rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(8px)',
     }}>
       <button
         onClick={() => onChange('3d')}
         style={{
-          padding: '8px 16px',
-          background: mode === '3d' ? theme.colors.accent : 'transparent',
+          padding: '10px 28px',
+          background: mode === '3d' ? 'rgba(255,255,255,0.1)' : 'transparent',
           border: 'none',
-          borderRadius: theme.radius.sm,
-          color: mode === '3d' ? '#fff' : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.semibold,
+          borderRadius: '20px',
+          color: mode === '3d' ? '#fff' : 'rgba(255,255,255,0.4)',
+          fontSize: '13px',
+          fontWeight: 500,
+          letterSpacing: '0.02em',
           cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.2s ease',
         }}
       >
-        🌐 Graph
+        Graph
       </button>
       <button
         onClick={() => onChange('report')}
         style={{
-          padding: '8px 16px',
-          background: mode === 'report' ? theme.colors.accent : 'transparent',
+          padding: '10px 28px',
+          background: mode === 'report' ? 'rgba(255,255,255,0.1)' : 'transparent',
           border: 'none',
-          borderRadius: theme.radius.sm,
-          color: mode === 'report' ? '#fff' : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.semibold,
+          borderRadius: '20px',
+          color: mode === 'report' ? '#fff' : 'rgba(255,255,255,0.4)',
+          fontSize: '13px',
+          fontWeight: 500,
+          letterSpacing: '0.02em',
           cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.2s ease',
         }}
       >
-        📋 Report
+        Report
       </button>
     </div>
   );
@@ -257,7 +254,16 @@ export default function App() {
           </span>
         </div>
 
-        {/* Target + Date */}
+        {/* Spacer (left) */}
+        <div style={{ flex: 1 }} />
+
+        {/* View Mode Toggle (centered) */}
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+        {/* Spacer (right) */}
+        <div style={{ flex: 1 }} />
+
+        {/* Target + Date (right side) */}
         <span style={{
           fontSize: theme.fontSize.xs,
           color: theme.colors.textMuted,
@@ -266,12 +272,6 @@ export default function App() {
           <span style={{ margin: '0 4px', opacity: 0.5 }}>·</span>
           {dateStr}
         </span>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* View Mode Toggle (integrated in header) */}
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
