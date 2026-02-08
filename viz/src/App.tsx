@@ -10,43 +10,68 @@ import InfoPanel from './components/InfoPanel';
 import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
+import LanguageSelector from './components/LanguageSelector';
+import DiagnosticReportModal from './components/DiagnosticReportModal';
 import { useWindowSize } from './hooks/useWindowSize';
+import { useTranslation } from './i18n/useTranslation';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
 
-// Header Stat Component (Responsive)
+// Get grade info from health score
+function getGradeInfo(score: number, t: ReturnType<typeof useTranslation>['t']) {
+  if (score >= 80) return { text: t.header.grade.excellent, color: '#10b981' };
+  if (score >= 65) return { text: t.header.grade.good, color: '#22c55e' };
+  if (score >= 50) return { text: t.header.grade.average, color: '#f59e0b' };
+  return { text: t.header.grade.poor, color: '#ef4444' };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Header Stat Component (Improved with labels)
+// ═══════════════════════════════════════════════════════════
 function HeaderStat({ 
   icon, 
   value, 
   label, 
   color,
+  subLabel,
   compact = false,
 }: { 
   icon: string; 
   value: string | number; 
   label: string; 
   color: string;
+  subLabel?: string;
   compact?: boolean;
 }) {
   if (compact) {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px',
-        padding: '6px 10px',
-        background: `${color}15`,
+        gap: '2px',
+        padding: '8px 12px',
+        background: `${color}12`,
         border: `1px solid ${color}30`,
-        borderRadius: '8px',
+        borderRadius: '10px',
+        minWidth: '56px',
       }}>
         <span style={{ fontSize: '14px' }}>{icon}</span>
         <span style={{
-          fontSize: '14px',
+          fontSize: '16px',
           fontWeight: 700,
           color: color,
           fontFamily: '"JetBrains Mono", monospace',
         }}>
           {value}
+        </span>
+        <span style={{
+          fontSize: '9px',
+          color: '#666',
+          fontFamily: '"Plus Jakarta Sans", sans-serif',
+          whiteSpace: 'nowrap',
+        }}>
+          {label}
         </span>
       </div>
     );
@@ -55,38 +80,51 @@ function HeaderStat({
   return (
     <div style={{
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      gap: '10px',
-      padding: '8px 14px',
+      gap: '4px',
+      padding: '12px 18px',
       background: `${color}10`,
-      border: `1px solid ${color}30`,
-      borderRadius: '10px',
+      border: `1px solid ${color}25`,
+      borderRadius: '12px',
+      minWidth: '90px',
     }}>
-      <span style={{ fontSize: '16px' }}>{icon}</span>
-      <div>
-        <div style={{
-          fontSize: '16px',
-          fontWeight: 700,
-          color: color,
-          fontFamily: '"JetBrains Mono", monospace',
-          lineHeight: 1,
-        }}>
-          {value}
-        </div>
+      <span style={{ fontSize: '18px', marginBottom: '2px' }}>{icon}</span>
+      <div style={{
+        fontSize: '22px',
+        fontWeight: 800,
+        color: color,
+        fontFamily: '"JetBrains Mono", monospace',
+        lineHeight: 1,
+      }}>
+        {value}
+      </div>
+      <div style={{
+        fontSize: '11px',
+        color: '#888',
+        fontFamily: '"Plus Jakarta Sans", sans-serif',
+        fontWeight: 500,
+      }}>
+        {label}
+      </div>
+      {subLabel && (
         <div style={{
           fontSize: '10px',
-          color: '#666',
+          color: color,
           fontFamily: '"Plus Jakarta Sans", sans-serif',
-          marginTop: '2px',
+          fontWeight: 600,
+          marginTop: '-2px',
         }}>
-          {label}
+          {subLabel}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
+// ═══════════════════════════════════════════════════════════
 // Mobile Bottom Nav Toggle
+// ═══════════════════════════════════════════════════════════
 function MobileNavToggle({ 
   activePanel, 
   onToggle 
@@ -94,6 +132,8 @@ function MobileNavToggle({
   activePanel: 'none' | 'categories' | 'recommendations';
   onToggle: (panel: 'none' | 'categories' | 'recommendations') => void;
 }) {
+  const { t } = useTranslation();
+  
   return (
     <div style={{
       position: 'fixed',
@@ -130,7 +170,7 @@ function MobileNavToggle({
           gap: '6px',
         }}
       >
-        🏷️ Categories
+        🏷️ {t.mobile.categories}
       </button>
       <button
         onClick={() => onToggle(activePanel === 'recommendations' ? 'none' : 'recommendations')}
@@ -154,12 +194,15 @@ function MobileNavToggle({
           gap: '6px',
         }}
       >
-        🎯 Recommend
+        🎯 {t.mobile.recommend}
       </button>
     </div>
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// Main App Component
+// ═══════════════════════════════════════════════════════════
 export default function App() {
   const [data, setData] = useState<VizData | null>(null);
   const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
@@ -167,8 +210,10 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'categories' | 'recommendations'>('none');
+  const [showReport, setShowReport] = useState(false);
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
+  const { t } = useTranslation();
 
   // Calculate center of mass for camera target
   const center = useMemo(() => {
@@ -191,6 +236,8 @@ export default function App() {
     const depth = data.metrics?.avgDepth || 1;
     return Math.round((balance * 40 + Math.min(depth / 3, 1) * 30 + 30) * 10) / 10;
   }, [data]);
+  
+  const gradeInfo = useMemo(() => getGradeInfo(healthScore, t), [healthScore, t]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -346,144 +393,175 @@ export default function App() {
       </div>
       
       {/* ═══════════════════════════════════════════════════════════
-          HEADER - Responsive
+          HEADER - Responsive & Improved
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        height: isMobile ? '56px' : '72px',
         background: 'linear-gradient(180deg, rgba(5,5,8,0.98) 0%, rgba(5,5,8,0) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: isMobile ? '0 12px' : '0 24px',
+        padding: isMobile ? '12px' : '16px 24px',
         zIndex: 100,
       }}>
-        {/* Left: Logo */}
+        {/* Top Row: Logo + Language + Report */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '8px' : '14px',
+          justifyContent: 'space-between',
+          marginBottom: isMobile ? '12px' : '16px',
         }}>
+          {/* Left: Logo */}
           <div style={{
-            width: isMobile ? '36px' : '44px',
-            height: isMobile ? '36px' : '44px',
-            borderRadius: isMobile ? '10px' : '12px',
-            background: 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)',
-            border: '1px solid rgba(255,255,255,0.1)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: isMobile ? '18px' : '22px',
-            boxShadow: '0 0 30px rgba(0,255,255,0.2)',
+            gap: isMobile ? '8px' : '14px',
           }}>
-            ⚔️
-          </div>
-          <div>
-            <h1 style={{ 
-              fontSize: isMobile ? '18px' : '24px', 
-              fontWeight: 800,
-              background: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #ffff00 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              margin: 0,
-              letterSpacing: '-0.02em',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
+            <div style={{
+              width: isMobile ? '36px' : '44px',
+              height: isMobile ? '36px' : '44px',
+              borderRadius: isMobile ? '10px' : '12px',
+              background: 'linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? '18px' : '22px',
+              boxShadow: '0 0 30px rgba(0,255,255,0.2)',
             }}>
-              SkillRespec
-            </h1>
-            {!isMobile && (
-              <p style={{ 
-                fontSize: '11px', 
-                color: '#555', 
-                marginTop: '2px',
-                fontFamily: '"JetBrains Mono", monospace',
+              ⚔️
+            </div>
+            <div>
+              <h1 style={{ 
+                fontSize: isMobile ? '18px' : '24px', 
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #ffff00 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                margin: 0,
+                letterSpacing: '-0.02em',
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
-                AI Skill Tree Analyzer
-              </p>
+                SkillRespec
+              </h1>
+              {!isMobile && (
+                <p style={{ 
+                  fontSize: '11px', 
+                  color: '#555', 
+                  marginTop: '2px',
+                  fontFamily: '"JetBrains Mono", monospace',
+                }}>
+                  {t.header.subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Language + Actions */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? '6px' : '10px',
+          }}>
+            <LanguageSelector compact={isMobile} />
+            
+            {!isMobile && (
+              <>
+                <button
+                  onClick={() => setShowReport(true)}
+                  style={{
+                    padding: isTablet ? '6px 12px' : '8px 16px',
+                    background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.25) 0%, rgba(255,0,255,0.25) 100%)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  📊 {t.header.report}
+                </button>
+                
+                <button style={{
+                  padding: isTablet ? '6px 12px' : '8px 16px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px',
+                  color: '#888',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}>
+                  📤 {t.header.export}
+                </button>
+              </>
+            )}
+            
+            {isMobile && (
+              <button
+                onClick={() => setShowReport(true)}
+                style={{
+                  padding: '6px 10px',
+                  background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                📊
+              </button>
             )}
           </div>
         </div>
 
-        {/* Center: Key Metrics - Hidden on mobile */}
-        {!isMobile && (
-          <div style={{
-            display: 'flex',
-            gap: isTablet ? '8px' : '12px',
-          }}>
-            <HeaderStat 
-              icon="🎯" 
-              value={`${healthScore}%`}
-              label="Health Score" 
-              color="#10b981"
-              compact={isTablet}
-            />
-            <HeaderStat 
-              icon="📦" 
-              value={data.nodes.length}
-              label="Skills" 
-              color="#00ffff"
-              compact={isTablet}
-            />
-            <HeaderStat 
-              icon="🔗" 
-              value={data.edges.length}
-              label="Connections" 
-              color="#ff00ff"
-              compact={isTablet}
-            />
-          </div>
-        )}
-
-        {/* Mobile: Compact metrics */}
-        {isMobile && (
-          <div style={{
-            display: 'flex',
-            gap: '6px',
-          }}>
-            <HeaderStat icon="🎯" value={`${healthScore}%`} label="" color="#10b981" compact />
-            <HeaderStat icon="📦" value={data.nodes.length} label="" color="#00ffff" compact />
-          </div>
-        )}
-
-        {/* Right: Quick Actions - Hidden on mobile */}
-        {!isMobile && (
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-          }}>
-            <button style={{
-              padding: isTablet ? '6px 12px' : '8px 16px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: '#888',
-              fontSize: '12px',
-              fontWeight: 600,
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}>
-              📤 Export
-            </button>
-            <button style={{
-              padding: isTablet ? '6px 12px' : '8px 16px',
-              background: 'linear-gradient(135deg, rgba(0,255,255,0.15) 0%, rgba(255,0,255,0.15) 100%)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: '#fff',
-              fontSize: '12px',
-              fontWeight: 600,
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}>
-              ⚡ Respec
-            </button>
-          </div>
-        )}
+        {/* Metrics Row */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: isMobile ? '8px' : '16px',
+        }}>
+          <HeaderStat 
+            icon="🏥" 
+            value={`${healthScore}%`}
+            label={t.header.healthScore}
+            subLabel={gradeInfo.text}
+            color={gradeInfo.color}
+            compact={isMobile}
+          />
+          <HeaderStat 
+            icon="📦" 
+            value={data.nodes.length}
+            label={t.header.skills}
+            color="#00ffff"
+            compact={isMobile}
+          />
+          <HeaderStat 
+            icon="🔗" 
+            value={data.edges.length}
+            label={t.header.connections}
+            color="#ff00ff"
+            compact={isMobile}
+          />
+        </div>
       </div>
       
       {/* ═══════════════════════════════════════════════════════════
@@ -582,6 +660,16 @@ export default function App() {
       />
       
       {/* ═══════════════════════════════════════════════════════════
+          DIAGNOSTIC REPORT MODAL
+      ═══════════════════════════════════════════════════════════ */}
+      <DiagnosticReportModal
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        data={data}
+        healthScore={healthScore}
+      />
+      
+      {/* ═══════════════════════════════════════════════════════════
           FOOTER - Instructions (Desktop/Tablet only)
       ═══════════════════════════════════════════════════════════ */}
       {!isMobile && (
@@ -599,9 +687,9 @@ export default function App() {
           border: '1px solid rgba(255,255,255,0.08)',
         }}>
           {[
-            { icon: '🖱️', label: 'Drag to rotate' },
-            { icon: '🔍', label: 'Scroll to zoom' },
-            { icon: '👆', label: 'Click for details' },
+            { icon: '🖱️', label: t.footer.rotate },
+            { icon: '🔍', label: t.footer.zoom },
+            { icon: '👆', label: t.footer.click },
           ].map(({ icon, label }) => (
             <div key={label} style={{ 
               display: 'flex', 
@@ -628,9 +716,23 @@ export default function App() {
           color: '#333',
           fontFamily: '"JetBrains Mono", monospace',
         }}>
-          Powered by <span style={{ color: '#555' }}>Three.js + React</span>
+          {t.footer.powered} <span style={{ color: '#555' }}>Three.js + React</span>
         </div>
       )}
+      
+      {/* Global animations */}
+      <style>{`
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
