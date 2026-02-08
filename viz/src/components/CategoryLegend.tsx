@@ -7,6 +7,7 @@ interface CategoryLegendProps {
   onSelect: (category: string | null) => void;
   compact?: boolean;
   mobile?: boolean;
+  embedded?: boolean;
 }
 
 export default function CategoryLegend({ 
@@ -15,6 +16,7 @@ export default function CategoryLegend({
   onSelect,
   compact = false,
   mobile = false,
+  embedded = false,
 }: CategoryLegendProps) {
   const totalSkills = clusters.reduce((sum, c) => sum + c.skills.length, 0);
   const sortedClusters = [...clusters].sort((a, b) => b.skills.length - a.skills.length);
@@ -111,20 +113,32 @@ export default function CategoryLegend({
   // Desktop/Tablet
   const panelWidth = compact ? 180 : 200;
 
+  // Embedded mode: fill parent container
+  const containerStyle: React.CSSProperties = embedded
+    ? {
+        width: '100%',
+        height: '100%',
+        background: 'transparent',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }
+    : {
+        position: 'absolute',
+        top: '80px',
+        left: '20px',
+        width: panelWidth,
+        background: theme.colors.bgSecondary,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.radius.lg,
+        maxHeight: 'calc(100vh - 160px)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      };
+
   return (
-    <div style={{
-      position: 'absolute',
-      top: '80px',
-      left: '20px',
-      width: panelWidth,
-      background: theme.colors.bgSecondary,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.radius.lg,
-      maxHeight: 'calc(100vh - 160px)',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-    }}>
+    <div style={containerStyle}>
       {/* Header */}
       <div style={{
         padding: '16px',

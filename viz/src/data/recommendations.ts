@@ -1,4 +1,4 @@
-// SkillRespec 추천 데이터 - 형 스킬 기반 분석
+// SkillRespec Recommendation Data - Simon's skill analysis
 
 export interface DiagnosisItem {
   type: 'success' | 'warning' | 'error';
@@ -38,53 +38,53 @@ export const recommendations: Recommendations = {
   diagnosis: [
     { 
       type: 'warning', 
-      text: '마케팅 스킬 과잉 (71%)', 
-      detail: '다른 카테고리 균형 필요' 
+      text: 'Marketing skills overload (71%)', 
+      detail: 'Balance with other categories needed' 
     },
     { 
       type: 'error', 
-      text: '개발/자동화 스킬 부족', 
-      detail: 'DevOps, CI/CD 역량 취약' 
+      text: 'Development/automation skills lacking', 
+      detail: 'DevOps, CI/CD capability weak' 
     },
     { 
       type: 'success', 
-      text: '보안 스킬 우수', 
-      detail: 'prompt-guard로 잘 방어됨' 
+      text: 'Security skills excellent', 
+      detail: 'Well protected with prompt-guard' 
     },
     { 
       type: 'warning', 
-      text: 'Data/Analytics 공백', 
-      detail: 'SQL, 데이터 분석 스킬 부재' 
+      text: 'Data/Analytics gap', 
+      detail: 'SQL, data analysis skills missing' 
     },
   ],
   install: [
     { 
       id: 'sql-query', 
-      reason: 'Data/Analytics 카테고리 완전 공백', 
+      reason: 'Data/Analytics category completely empty', 
       priority: 'high',
       category: 'Data' 
     },
     { 
       id: 'n8n-automation', 
-      reason: '워크플로우 자동화로 생산성 10x', 
+      reason: 'Workflow automation for 10x productivity', 
       priority: 'high',
       category: 'Automation' 
     },
     { 
       id: 'docker-basics', 
-      reason: 'DevOps 역량 강화', 
+      reason: 'Strengthen DevOps capability', 
       priority: 'medium',
       category: 'DevOps' 
     },
     { 
       id: 'api-testing', 
-      reason: '개발 워크플로우 개선', 
+      reason: 'Improve development workflow', 
       priority: 'medium',
       category: 'Development' 
     },
     { 
       id: 'git-advanced', 
-      reason: '버전 관리 고급 기능 활용', 
+      reason: 'Utilize advanced version control features', 
       priority: 'low',
       category: 'Development' 
     },
@@ -92,13 +92,13 @@ export const recommendations: Recommendations = {
   remove: [
     { 
       id: 'ui-ux-pro-max-skill', 
-      reason: 'ui-ux-pro-max와 100% 중복', 
+      reason: '100% duplicate of ui-ux-pro-max', 
       priority: 'high',
       conflictsWith: 'ui-ux-pro-max'
     },
     { 
       id: 'copywriting (marketingskills)', 
-      reason: 'skills/copywriting과 중복', 
+      reason: 'Duplicate of skills/copywriting', 
       priority: 'medium',
       conflictsWith: 'copywriting'
     },
@@ -108,13 +108,13 @@ export const recommendations: Recommendations = {
       id: 'prompt-guard', 
       from: 'v2.8', 
       to: 'v3.0', 
-      reason: '새 공격 패턴 50+ 추가됨' 
+      reason: 'New attack patterns 50+ added' 
     },
     { 
       id: 'frontend-design', 
       from: 'v1.2', 
       to: 'v2.0', 
-      reason: 'Tailwind v4 대응' 
+      reason: 'Tailwind v4 support' 
     },
   ],
 };

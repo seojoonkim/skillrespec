@@ -239,25 +239,32 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
 // ═══════════════════════════════════════════════════════════
 interface RecommendationsPanelProps {
   position?: 'right' | 'bottom' | 'mobile';
+  embedded?: boolean;
 }
 
-export default function RecommendationsPanel({ position = 'right' }: RecommendationsPanelProps) {
+export default function RecommendationsPanel({ position = 'right', embedded = false }: RecommendationsPanelProps) {
   const [activeTab, setActiveTab] = useState<'diagnosis' | 'install' | 'remove' | 'update'>('diagnosis');
 
   const isBottom = position === 'bottom';
   const isMobile = position === 'mobile';
 
   const containerStyle: React.CSSProperties = {
-    background: theme.colors.bgSecondary,
-    border: `1px solid ${theme.colors.border}`,
+    background: embedded ? 'transparent' : theme.colors.bgSecondary,
+    border: embedded ? 'none' : `1px solid ${theme.colors.border}`,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    zIndex: 900,
+    zIndex: embedded ? 'auto' : 900,
     pointerEvents: 'auto',
   };
 
-  if (isBottom) {
+  if (embedded) {
+    // Fill parent container
+    Object.assign(containerStyle, {
+      width: '100%',
+      height: '100%',
+    });
+  } else if (isBottom) {
     Object.assign(containerStyle, {
       position: 'absolute',
       bottom: '80px',

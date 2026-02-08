@@ -626,8 +626,26 @@ export default function ReportView({ data }: ReportViewProps) {
             <tbody>
               {sortedNodes.map((node) => {
                 const color = theme.categoryColors[node.category] || theme.colors.textMuted;
-                const isHeavy = node.tokens > 3000;
-                const hasHighOverlap = node.connections.length > 5;
+                
+                // Essential skills (high token + important categories)
+                const essentialSkills = ['prompt-guard', 'marketing-psychology', 'thinking-model-enhancer'];
+                const isEssential = essentialSkills.includes(node.id) || node.category === 'security';
+                
+                // Check for duplicates (simplified - similar names)
+                const isDuplicate = node.id.includes('-skill') && node.id.includes('-max');
+                
+                // Check for updates (simulated - high token count might indicate old version)
+                const hasUpdate = node.tokens > 5000;
+                
+                // Status logic
+                const getStatus = () => {
+                  if (isDuplicate) return { label: 'Duplicate', color: theme.colors.error, icon: '⚠️' };
+                  if (hasUpdate) return { label: 'Update Available', color: theme.colors.warning, icon: '🔄' };
+                  if (isEssential) return { label: 'Essential', color: theme.colors.success, icon: '⭐' };
+                  return { label: 'Active', color: theme.colors.textMuted, icon: '✓' };
+                };
+                
+                const status = getStatus();
                 
                 return (
                   <tr
@@ -677,7 +695,7 @@ export default function ReportView({ data }: ReportViewProps) {
                       padding: '12px 16px',
                       fontSize: theme.fontSize.sm,
                       fontFamily: theme.fonts.mono,
-                      color: theme.colors.textSecondary,
+                      color: 'rgba(255, 255, 255, 0.7)',
                     }}>
                       ~{node.tokens.toLocaleString()}
                     </td>
@@ -690,43 +708,19 @@ export default function ReportView({ data }: ReportViewProps) {
                       {node.connections.length}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      {isHeavy && (
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          fontSize: theme.fontSize.xs,
-                          color: '#a78bfa',
-                          background: 'rgba(167, 139, 250, 0.15)',
-                          borderRadius: theme.radius.sm,
-                          marginRight: '4px',
-                        }}>
-                          Comprehensive
-                        </span>
-                      )}
-                      {hasHighOverlap && (
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          fontSize: theme.fontSize.xs,
-                          color: theme.colors.info,
-                          background: `${theme.colors.info}15`,
-                          borderRadius: theme.radius.sm,
-                        }}>
-                          Connected
-                        </span>
-                      )}
-                      {!isHeavy && !hasHighOverlap && (
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          fontSize: theme.fontSize.xs,
-                          color: theme.colors.textMuted,
-                          background: `${theme.colors.textMuted}10`,
-                          borderRadius: theme.radius.sm,
-                        }}>
-                          Standard
-                        </span>
-                      )}
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 8px',
+                        fontSize: theme.fontSize.xs,
+                        color: status.color,
+                        background: `${status.color}15`,
+                        borderRadius: theme.radius.sm,
+                      }}>
+                        <span>{status.icon}</span>
+                        {status.label}
+                      </span>
                     </td>
                   </tr>
                 );

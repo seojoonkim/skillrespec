@@ -20,67 +20,40 @@ import { generateDemoData } from './data/demoData';
 type ViewMode = '3d' | 'report';
 
 // ═══════════════════════════════════════════════════════════
-// Stat Card Component (with description)
+// Compact Stat Badge (inline, minimal)
 // ═══════════════════════════════════════════════════════════
-function StatCard({ 
+function StatBadge({ 
   value, 
-  label, 
-  description,
-  sublabel,
+  icon,
+  tooltip,
   accent = false,
 }: { 
   value: string | number; 
-  label: string; 
-  description: string;
-  sublabel?: string;
+  icon: string;
+  tooltip: string;
   accent?: boolean;
 }) {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '12px 20px',
-      background: theme.colors.bgTertiary,
-      borderRadius: theme.radius.md,
-      minWidth: '100px',
-    }}>
+    <div 
+      title={tooltip}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '4px 10px',
+        background: theme.colors.bgTertiary,
+        borderRadius: theme.radius.sm,
+        cursor: 'help',
+      }}
+    >
+      <span style={{ fontSize: '14px' }}>{icon}</span>
       <span style={{
-        fontSize: '28px',
-        fontWeight: theme.fontWeight.bold,
+        fontSize: theme.fontSize.sm,
+        fontWeight: theme.fontWeight.semibold,
         color: accent ? theme.colors.accent : theme.colors.textPrimary,
         fontFamily: theme.fonts.mono,
-        lineHeight: 1,
       }}>
         {value}
-      </span>
-      <span style={{
-        fontSize: theme.fontSize.xs,
-        color: theme.colors.textMuted,
-        marginTop: '6px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}>
-        {label}
-      </span>
-      {sublabel && (
-        <span style={{
-          fontSize: theme.fontSize.xs,
-          color: accent ? theme.colors.accent : theme.colors.textSecondary,
-          marginTop: '2px',
-        }}>
-          {sublabel}
-        </span>
-      )}
-      <span style={{
-        fontSize: '10px',
-        color: theme.colors.textMuted,
-        marginTop: '4px',
-        textAlign: 'center',
-        maxWidth: '100px',
-        lineHeight: 1.3,
-      }}>
-        {description}
       </span>
     </div>
   );
@@ -290,142 +263,148 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          BRANDED HEADER
+          COMPACT HEADER (single line, ~48px height)
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
-        padding: isMobile ? '12px 16px' : '16px 24px',
+        height: isMobile ? '48px' : '52px',
+        padding: '0 16px',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexShrink: 0,
       }}>
-        {/* Title Row */}
+        {/* Logo + Title */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '12px',
+          gap: '8px',
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
+          <span style={{ fontSize: '20px' }}>⚔️</span>
+          <span style={{
+            fontSize: theme.fontSize.md,
+            fontWeight: theme.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            letterSpacing: '-0.01em',
           }}>
-            <span style={{ fontSize: isMobile ? '24px' : '28px' }}>⚔️</span>
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}>
-                <h1 style={{
-                  fontSize: isMobile ? theme.fontSize.lg : theme.fontSize.xl,
-                  fontWeight: theme.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  margin: 0,
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.02em',
-                }}>
-                  SkillRespec
-                </h1>
-                <span style={{
-                  fontSize: theme.fontSize.sm,
-                  color: theme.colors.textMuted,
-                  fontWeight: theme.fontWeight.normal,
-                }}>
-                  Report
-                </span>
-              </div>
-              <div style={{
-                fontSize: theme.fontSize.xs,
-                color: theme.colors.textMuted,
-                marginTop: '4px',
-              }}>
-                Target: <span style={{ color: theme.colors.textSecondary }}>Simon</span>
-                <span style={{ margin: '0 8px', opacity: 0.5 }}>·</span>
-                Analyzed: <span style={{ color: theme.colors.textSecondary }}>{dateStr}</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Full Report Button */}
-          {!isMobile && (
-            <button
-              onClick={() => setShowReport(true)}
-              style={{
-                padding: '6px 12px',
-                background: 'transparent',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.md,
-                color: theme.colors.textSecondary,
-                fontSize: theme.fontSize.xs,
-                fontWeight: theme.fontWeight.medium,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              📄 Full Report
-            </button>
-          )}
+            SkillRespec
+          </span>
         </div>
 
-        {/* Stats Row */}
-        <div style={{
-          display: 'flex',
-          gap: isMobile ? '8px' : '12px',
-          flexWrap: 'wrap',
+        {/* Separator */}
+        <span style={{ 
+          width: '1px', 
+          height: '20px', 
+          background: theme.colors.border 
+        }} />
+
+        {/* Target + Date */}
+        <span style={{
+          fontSize: theme.fontSize.sm,
+          color: theme.colors.textMuted,
         }}>
-          <StatCard 
-            value={`${healthScore}%`}
-            label="Health"
-            description="How balanced your skills are"
-            sublabel={gradeInfo.text}
-            accent 
-          />
-          <StatCard 
-            value={data.nodes.length} 
-            label="Skills"
-            description="Total skills installed"
-          />
-          <StatCard 
-            value={data.edges.length} 
-            label="Connections"
-            description="Relationships between skills"
-          />
-        </div>
+          <span style={{ color: theme.colors.textSecondary }}>Simon</span>
+          <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>
+          {dateStr}
+        </span>
+
+        {/* Stats (desktop only) */}
+        {!isMobile && (
+          <>
+            <span style={{ 
+              width: '1px', 
+              height: '20px', 
+              background: theme.colors.border 
+            }} />
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+            }}>
+              <StatBadge 
+                value={`${healthScore}%`}
+                icon="❤️"
+                tooltip={`Health: ${gradeInfo.text} - How balanced your skills are`}
+                accent 
+              />
+              <StatBadge 
+                value={data.nodes.length} 
+                icon="📦"
+                tooltip="Total skills installed"
+              />
+              <StatBadge 
+                value={data.edges.length} 
+                icon="🔗"
+                tooltip="Connections between skills"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* View Toggle */}
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+        {/* Full Report Button */}
+        {!isMobile && (
+          <button
+            onClick={() => setShowReport(true)}
+            style={{
+              padding: '6px 12px',
+              background: 'transparent',
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radius.md,
+              color: theme.colors.textSecondary,
+              fontSize: theme.fontSize.xs,
+              fontWeight: theme.fontWeight.medium,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            📄 Report
+          </button>
+        )}
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          VIEW MODE TABS
-      ═══════════════════════════════════════════════════════════ */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: '10px 24px',
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}>
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA
+          MAIN CONTENT AREA - 3 Column Layout (Desktop)
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         flex: 1,
-        position: 'relative',
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? '200px 1fr 320px' : isTablet ? '180px 1fr' : '1fr',
         overflow: 'hidden',
       }}>
         {viewMode === '3d' ? (
           <>
-            {/* 3D Canvas */}
+            {/* LEFT COLUMN: Categories */}
+            {!isMobile && (
+              <div style={{
+                background: theme.colors.bgSecondary,
+                borderRight: `1px solid ${theme.colors.border}`,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+                <CategoryLegend 
+                  clusters={data.clusters}
+                  selectedCategory={selectedCategory}
+                  onSelect={setSelectedCategory}
+                  compact={isTablet}
+                  embedded
+                />
+              </div>
+            )}
+            
+            {/* CENTER COLUMN: 3D Canvas */}
             <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: isMobile ? '56px' : 0,
+              position: 'relative',
+              overflow: 'hidden',
+              paddingBottom: isMobile ? '56px' : 0,
             }}>
               <Canvas
                 camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
@@ -476,20 +455,66 @@ export default function App() {
                   />
                 </Suspense>
               </Canvas>
+              
+              {/* Info Panel (overlay) */}
+              <InfoPanel 
+                node={selectedNode || hoveredNode}
+                allNodes={data.nodes}
+                edges={data.edges}
+                metrics={data.metrics}
+                onClose={() => setSelectedNode(null)}
+                mobile={isMobile}
+              />
+              
+              {/* Footer hint */}
+              {!isMobile && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '16px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  gap: '24px',
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.textMuted,
+                }}>
+                  <span>Drag to rotate</span>
+                  <span>•</span>
+                  <span>Scroll to zoom</span>
+                  <span>•</span>
+                  <span>Click for details</span>
+                </div>
+              )}
             </div>
             
-            {/* Panels */}
-            {!isMobile && (
-              <CategoryLegend 
-                clusters={data.clusters}
-                selectedCategory={selectedCategory}
-                onSelect={setSelectedCategory}
-                compact={isTablet}
-              />
+            {/* RIGHT COLUMN: Recommendations (Desktop only) */}
+            {isDesktop && (
+              <div style={{
+                background: theme.colors.bgSecondary,
+                borderLeft: `1px solid ${theme.colors.border}`,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+                <RecommendationsPanel embedded />
+              </div>
             )}
             
-            {isDesktop && <RecommendationsPanel />}
-            {isTablet && <RecommendationsPanel position="bottom" />}
+            {/* Tablet: Recommendations at bottom */}
+            {isTablet && (
+              <div style={{
+                position: 'fixed',
+                bottom: 0,
+                left: '180px',
+                right: 0,
+                height: '180px',
+                background: theme.colors.bgSecondary,
+                borderTop: `1px solid ${theme.colors.border}`,
+                zIndex: 100,
+              }}>
+                <RecommendationsPanel position="bottom" embedded />
+              </div>
+            )}
             
             {/* Mobile Panels */}
             {isMobile && mobilePanel === 'categories' && (
@@ -538,40 +563,12 @@ export default function App() {
                 onToggle={setMobilePanel} 
               />
             )}
-            
-            {/* Info Panel */}
-            <InfoPanel 
-              node={selectedNode || hoveredNode}
-              allNodes={data.nodes}
-              edges={data.edges}
-              metrics={data.metrics}
-              onClose={() => setSelectedNode(null)}
-              mobile={isMobile}
-            />
-            
-            {/* Footer */}
-            {!isMobile && (
-              <div style={{
-                position: 'absolute',
-                bottom: '16px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '24px',
-                fontSize: theme.fontSize.xs,
-                color: theme.colors.textMuted,
-              }}>
-                <span>Drag to rotate</span>
-                <span>•</span>
-                <span>Scroll to zoom</span>
-                <span>•</span>
-                <span>Click for details</span>
-              </div>
-            )}
           </>
         ) : (
-          /* Report View */
-          <ReportView data={data} />
+          /* Report View - full width */
+          <div style={{ gridColumn: '1 / -1', overflow: 'auto' }}>
+            <ReportView data={data} />
+          </div>
         )}
       </div>
       
