@@ -42,22 +42,24 @@ function Tab({
     <button
       onClick={onClick}
       style={{
-        padding: '12px 12px',
+        flex: 1,
+        padding: '8px 4px',
         background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${active ? theme.colors.textPrimary : 'transparent'}`,
+        borderBottom: `2px solid ${active ? (accentColor || theme.colors.textPrimary) : 'transparent'}`,
         color: active ? theme.colors.textPrimary : theme.colors.textMuted,
-        fontSize: theme.fontSize.xs,
+        fontSize: '11px',
         fontWeight: theme.fontWeight.medium,
         fontFamily: theme.fonts.sans,
         cursor: 'pointer',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '5px',
+        gap: '4px',
         transition: theme.transitions.fast,
         whiteSpace: 'nowrap',
-        flexShrink: 0,
+        minWidth: 0,
       }}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.color = theme.colors.textSecondary;
@@ -66,16 +68,13 @@ function Tab({
         if (!active) e.currentTarget.style.color = theme.colors.textMuted;
       }}
     >
-      {children}
+      <span>{children}</span>
       {count !== undefined && count > 0 && (
         <span style={{
-          fontSize: '10px',
-          padding: '2px 6px',
-          borderRadius: theme.radius.full,
-          background: accentColor ? `${accentColor}15` : theme.colors.bgTertiary,
-          color: accentColor || theme.colors.textMuted,
+          fontSize: '12px',
           fontFamily: theme.fonts.mono,
-          fontWeight: theme.fontWeight.semibold,
+          fontWeight: theme.fontWeight.bold,
+          color: accentColor || theme.colors.textMuted,
         }}>
           {count}
         </span>
@@ -495,14 +494,11 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs - Vertical layout (name above, count below) */}
       <div style={{
         display: 'flex',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
-        overflowX: 'auto',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
       }}>
         <Tab 
           active={activeTab === 'diagnosis'} 
@@ -518,7 +514,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           count={recommendations.security.length}
           accentColor={terminalColors.security}
         >
-          🔓 Security
+          Security
         </Tab>
         <Tab 
           active={activeTab === 'install'} 
