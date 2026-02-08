@@ -4,18 +4,30 @@ import { theme } from '../styles/theme';
 import type { DiagnosisItem, InstallItem, RemoveItem, UpdateItem } from '../data/recommendations';
 
 // ═══════════════════════════════════════════════════════════
-// Tab Component - Clean minimal style
+// Terminal-style accent colors
+// ═══════════════════════════════════════════════════════════
+const terminalColors = {
+  analysis: '#FFC107',  // Yellow - warning/attention
+  install: '#4ADE80',   // Green - add/success
+  remove: '#EF4444',    // Red - delete/danger
+  update: '#22D3EE',    // Cyan - info/update
+} as const;
+
+// ═══════════════════════════════════════════════════════════
+// Tab Component - Clean minimal style with accent colors
 // ═══════════════════════════════════════════════════════════
 function Tab({ 
   active, 
   onClick, 
   children, 
   count,
+  accentColor,
 }: { 
   active: boolean; 
   onClick: () => void; 
   children: React.ReactNode; 
   count?: number;
+  accentColor?: string;
 }) {
   return (
     <button
@@ -52,8 +64,8 @@ function Tab({
           fontSize: '10px',
           padding: '2px 6px',
           borderRadius: theme.radius.full,
-          background: theme.colors.bgTertiary,
-          color: theme.colors.textMuted,
+          background: accentColor ? `${accentColor}15` : theme.colors.bgTertiary,
+          color: accentColor || theme.colors.textMuted,
           fontFamily: theme.fonts.mono,
           fontWeight: theme.fontWeight.semibold,
         }}>
@@ -68,87 +80,120 @@ function Tab({
 // Section Components - Clean minimal style
 // ═══════════════════════════════════════════════════════════
 function DiagnosisSection({ items }: { items: DiagnosisItem[] }) {
+  const getTypeColor = (type: DiagnosisItem['type']) => {
+    switch (type) {
+      case 'success': return terminalColors.install;  // Green
+      case 'warning': return terminalColors.analysis; // Yellow
+      case 'error': return terminalColors.remove;     // Red
+      default: return theme.colors.textMuted;
+    }
+  };
+
   return (
     <div style={{ padding: '16px' }}>
-      {items.map((item, i) => (
-        <div
-          key={i}
-          style={{
-            padding: '14px 16px',
-            marginBottom: '10px',
-            background: theme.colors.bgTertiary,
-            borderRadius: theme.radius.md,
-            transition: theme.transitions.fast,
-          }}
-        >
-          <div style={{
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.medium,
-            color: theme.colors.textPrimary,
-            marginBottom: '4px',
-            lineHeight: 1.4,
-          }}>
-            {item.text}
+      {items.map((item, i) => {
+        const accentColor = getTypeColor(item.type);
+        return (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              marginBottom: '10px',
+              background: theme.colors.bgTertiary,
+              borderRadius: theme.radius.md,
+              overflow: 'hidden',
+              transition: theme.transitions.fast,
+            }}
+          >
+            {/* Left accent bar */}
+            <div style={{
+              width: '3px',
+              background: accentColor,
+              flexShrink: 0,
+            }} />
+            <div style={{ padding: '14px 16px', flex: 1 }}>
+              <div style={{
+                fontSize: theme.fontSize.sm,
+                fontWeight: theme.fontWeight.medium,
+                color: theme.colors.textPrimary,
+                marginBottom: '4px',
+                lineHeight: 1.4,
+              }}>
+                {item.text}
+              </div>
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textMuted,
+                lineHeight: 1.5,
+              }}>
+                {item.detail}
+              </div>
+            </div>
           </div>
-          <div style={{
-            fontSize: theme.fontSize.xs,
-            color: theme.colors.textMuted,
-            lineHeight: 1.5,
-          }}>
-            {item.detail}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 function InstallSection({ items }: { items: InstallItem[] }) {
+  const getPriorityColor = (priority: InstallItem['priority']) => {
+    switch (priority) {
+      case 'high': return terminalColors.remove;   // Red - urgent
+      case 'medium': return terminalColors.analysis; // Yellow
+      case 'low': return theme.colors.textMuted;
+      default: return theme.colors.textMuted;
+    }
+  };
+
   return (
     <div style={{ padding: '16px' }}>
-      {items.map((item, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-            padding: '14px 0',
-            borderBottom: i < items.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
-          }}
-        >
-          <span style={{
-            fontSize: theme.fontSize.xs,
-            fontWeight: theme.fontWeight.medium,
-            color: theme.colors.textMuted,
-            padding: '3px 8px',
-            background: theme.colors.bgTertiary,
-            borderRadius: theme.radius.sm,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-          }}>
-            {item.priority}
-          </span>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              fontFamily: theme.fonts.mono,
-              marginBottom: '4px',
-            }}>
-              + {item.id}
-            </div>
-            <div style={{
+      {items.map((item, i) => {
+        const priorityColor = getPriorityColor(item.priority);
+        return (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '14px 0',
+              borderBottom: i < items.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
+            }}
+          >
+            <span style={{
               fontSize: theme.fontSize.xs,
-              color: theme.colors.textMuted,
-              lineHeight: 1.5,
+              fontWeight: theme.fontWeight.medium,
+              color: priorityColor,
+              padding: '3px 8px',
+              background: `${priorityColor}15`,
+              borderRadius: theme.radius.sm,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
             }}>
-              {item.reason}
+              {item.priority}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: theme.fontSize.sm,
+                fontWeight: theme.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+                fontFamily: theme.fonts.mono,
+                marginBottom: '4px',
+              }}>
+                <span style={{ color: terminalColors.install }}>+</span> {item.id}
+              </div>
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textMuted,
+                lineHeight: 1.5,
+              }}>
+                {item.reason}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -168,7 +213,7 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
           }}
         >
           <span style={{ 
-            color: theme.colors.textMuted, 
+            color: terminalColors.remove, 
             fontSize: '18px',
             lineHeight: 1,
             fontWeight: theme.fontWeight.bold,
@@ -179,10 +224,11 @@ function RemoveSection({ items }: { items: RemoveItem[] }) {
             <div style={{
               fontSize: theme.fontSize.sm,
               fontWeight: theme.fontWeight.semibold,
-              color: theme.colors.textMuted,
+              color: terminalColors.remove,
               fontFamily: theme.fonts.mono,
               marginBottom: '4px',
               textDecoration: 'line-through',
+              opacity: 0.85,
             }}>
               {item.id}
             </div>
@@ -215,7 +261,7 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
           }}
         >
           <span style={{ 
-            color: theme.colors.textMuted, 
+            color: terminalColors.update, 
             fontSize: '16px',
             lineHeight: 1,
           }}>
@@ -242,12 +288,16 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: theme.fontSize.xs,
-                color: theme.colors.textMuted,
                 fontFamily: theme.fonts.mono,
               }}>
-                <span style={{ opacity: 0.6 }}>{item.from}</span>
-                <span>→</span>
-                <span style={{ fontWeight: theme.fontWeight.medium }}>{item.to}</span>
+                <span style={{ color: theme.colors.textMuted, opacity: 0.6 }}>{item.from}</span>
+                <span style={{ color: theme.colors.textMuted }}>→</span>
+                <span style={{ 
+                  color: terminalColors.update, 
+                  fontWeight: theme.fontWeight.medium,
+                }}>
+                  {item.to}
+                </span>
               </div>
             </div>
             <div style={{
@@ -350,6 +400,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'diagnosis'} 
           onClick={() => setActiveTab('diagnosis')} 
           count={recommendations.diagnosis.length}
+          accentColor={terminalColors.analysis}
         >
           Analysis
         </Tab>
@@ -357,6 +408,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'install'} 
           onClick={() => setActiveTab('install')} 
           count={recommendations.install.length}
+          accentColor={terminalColors.install}
         >
           Install
         </Tab>
@@ -364,6 +416,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'remove'} 
           onClick={() => setActiveTab('remove')} 
           count={recommendations.remove.length}
+          accentColor={terminalColors.remove}
         >
           Remove
         </Tab>
@@ -371,6 +424,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           active={activeTab === 'update'} 
           onClick={() => setActiveTab('update')} 
           count={recommendations.update.length}
+          accentColor={terminalColors.update}
         >
           Update
         </Tab>
