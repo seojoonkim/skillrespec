@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import type { SkillNode } from '../types';
+import type { SkillNode, HealthStatus } from '../types';
 
 interface SkillNodesProps {
   nodes: SkillNode[];
@@ -11,6 +11,49 @@ interface SkillNodesProps {
   onSelect: (node: SkillNode | null) => void;
   onHover: (node: SkillNode | null) => void;
 }
+
+// Health-based visual properties
+const HEALTH_CONFIG: Record<HealthStatus, {
+  emissiveColor: string;
+  baseIntensity: number;
+  pulseSpeed: number;
+  pulseAmount: number;
+  glowOpacity: number;
+  opacity: number;
+}> = {
+  shouldRemove: {
+    emissiveColor: '#ff3333',
+    baseIntensity: 0.6,
+    pulseSpeed: 4,
+    pulseAmount: 0.3,
+    glowOpacity: 0.5,
+    opacity: 1,
+  },
+  needsUpdate: {
+    emissiveColor: '#ffa500',
+    baseIntensity: 0.4,
+    pulseSpeed: 2,
+    pulseAmount: 0.15,
+    glowOpacity: 0.35,
+    opacity: 1,
+  },
+  unused: {
+    emissiveColor: '#666666',
+    baseIntensity: 0.1,
+    pulseSpeed: 0,
+    pulseAmount: 0,
+    glowOpacity: 0.1,
+    opacity: 0.4,
+  },
+  healthy: {
+    emissiveColor: '', // Use node.color
+    baseIntensity: 0.2,
+    pulseSpeed: 0,
+    pulseAmount: 0,
+    glowOpacity: 0.15,
+    opacity: 1,
+  },
+};
 
 function SkillNodeMesh({ 
   node, 
@@ -30,9 +73,14 @@ function SkillNodeMesh({
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   
   const baseSize = node.size * 0.4;
   const scale = isSelected ? 1.8 : isHovered ? 1.4 : isConnected ? 1.2 : 1;
+  
+  // Get health-based config
+  const healthConfig = HEALTH_CONFIG[node.health];
+  const emissiveColor = healthConfig.emissiveColor || node.color;
   
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -42,20 +90,35 @@ function SkillNodeMesh({
     // Floating animation
     meshRef.current.position.y = node.y + Math.sin(time * 0.5 + node.x) * 0.1;
     
-    // Pulse when active
+    // Health-based pulse animation
+    const healthPulse = healthConfig.pulseSpeed > 0 
+      ? 1 + Math.sin(time * healthConfig.pulseSpeed) * healthConfig.pulseAmount
+      : 1;
+    
+    // Pulse when active or health issue
     if (isSelected || isHovered) {
-      const pulse = 1 + Math.sin(time * 4) * 0.08;
-      meshRef.current.scale.setScalar(baseSize * scale * pulse);
+      const activePulse = 1 + Math.sin(time * 4) * 0.08;
+      meshRef.current.scale.setScalar(baseSize * scale * activePulse * healthPulse);
     } else {
-      meshRef.current.scale.setScalar(baseSize * scale);
+      meshRef.current.scale.setScalar(baseSize * scale * healthPulse);
     }
     
-    // Glow pulse
+    // Update emissive intensity based on health pulse
+    if (materialRef.current) {
+      const baseEmissive = isSelected ? 0.8 : isHovered ? 0.5 : isConnected ? 0.4 : healthConfig.baseIntensity;
+      const pulseIntensity = healthConfig.pulseSpeed > 0 
+        ? baseEmissive * (0.7 + Math.sin(time * healthConfig.pulseSpeed) * 0.3)
+        : baseEmissive;
+      materialRef.current.emissiveIntensity = pulseIntensity;
+    }
+    
+    // Glow pulse with health awareness
     if (glowRef.current) {
       const glowPulse = 1 + Math.sin(time * 2) * 0.2;
-      glowRef.current.scale.setScalar(baseSize * scale * 2 * glowPulse);
+      glowRef.current.scale.setScalar(baseSize * scale * 2 * glowPulse * healthPulse);
+      const baseGlowOpacity = isSelected ? 0.4 : isHovered ? 0.3 : healthConfig.glowOpacity;
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 
-        (isSelected ? 0.4 : isHovered ? 0.3 : 0.15) * (0.8 + Math.sin(time * 3) * 0.2);
+        baseGlowOpacity * (0.8 + Math.sin(time * 3) * 0.2);
     }
     
     // Ring rotation
@@ -65,23 +128,46 @@ function SkillNodeMesh({
     }
   });
 
+  // Health indicator colors for glow
+  const glowColor = node.health === 'shouldRemove' ? '#ff3333' 
+    : node.health === 'needsUpdate' ? '#ffa500' 
+    : node.color;
+  
+  // Ring color matches health status
+  const ringColor = node.health === 'shouldRemove' ? '#ff5555'
+    : node.health === 'needsUpdate' ? '#ffbb33'
+    : node.color;
+  
   return (
     <group position={[node.x, node.y, node.z]}>
-      {/* Outer glow sphere */}
+      {/* Outer glow sphere - health-aware */}
       <Sphere ref={glowRef} args={[1, 16, 16]}>
         <meshBasicMaterial
-          color={node.color}
+          color={glowColor}
           transparent
-          opacity={0.15}
+          opacity={healthConfig.glowOpacity}
           depthWrite={false}
         />
       </Sphere>
+      
+      {/* Health warning ring for problem nodes */}
+      {(node.health === 'shouldRemove' || node.health === 'needsUpdate') && !isSelected && !isHovered && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[baseSize * 1.3, baseSize * 1.5, 32]} />
+          <meshBasicMaterial 
+            color={glowColor} 
+            transparent 
+            opacity={0.4}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
       
       {/* Selection ring */}
       {(isSelected || isHovered) && (
         <mesh ref={ringRef}>
           <torusGeometry args={[baseSize * scale * 1.5, 0.02, 16, 32]} />
-          <meshBasicMaterial color={node.color} transparent opacity={0.8} />
+          <meshBasicMaterial color={ringColor} transparent opacity={0.8} />
         </mesh>
       )}
       
@@ -104,18 +190,25 @@ function SkillNodeMesh({
         }}
       >
         <meshStandardMaterial
-          color={node.color}
-          emissive={node.color}
-          emissiveIntensity={isSelected ? 0.8 : isHovered ? 0.5 : isConnected ? 0.4 : 0.2}
+          ref={materialRef}
+          color={node.health === 'unused' ? '#444444' : node.color}
+          emissive={emissiveColor}
+          emissiveIntensity={isSelected ? 0.8 : isHovered ? 0.5 : isConnected ? 0.4 : healthConfig.baseIntensity}
           roughness={0.2}
           metalness={0.8}
           envMapIntensity={1}
+          transparent={healthConfig.opacity < 1}
+          opacity={healthConfig.opacity}
         />
       </Sphere>
       
-      {/* Inner core glow */}
+      {/* Inner core glow - dimmer for unhealthy nodes */}
       <Sphere args={[baseSize * 0.3, 16, 16]}>
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+        <meshBasicMaterial 
+          color={node.health === 'shouldRemove' ? '#ff6666' : '#ffffff'} 
+          transparent 
+          opacity={node.health === 'unused' ? 0.2 : 0.6} 
+        />
       </Sphere>
 
       {/* Label on hover/select */}
@@ -130,8 +223,8 @@ function SkillNodeMesh({
             backdropFilter: 'blur(10px)',
             padding: '8px 14px',
             borderRadius: 8,
-            border: `2px solid ${node.color}`,
-            boxShadow: `0 0 30px ${node.color}60, inset 0 0 20px ${node.color}20`,
+            border: `2px solid ${ringColor}`,
+            boxShadow: `0 0 30px ${ringColor}60, inset 0 0 20px ${ringColor}20`,
             whiteSpace: 'nowrap',
             fontFamily: 'system-ui, sans-serif',
           }}>
@@ -140,7 +233,12 @@ function SkillNodeMesh({
               fontWeight: 600, 
               color: '#fff',
               textShadow: `0 0 10px ${node.color}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
             }}>
+              {node.health === 'shouldRemove' && <span style={{ color: '#ff5555' }}>⚠️</span>}
+              {node.health === 'needsUpdate' && <span style={{ color: '#ffa500' }}>🔄</span>}
               {node.name}
             </div>
             <div style={{ 
@@ -153,7 +251,23 @@ function SkillNodeMesh({
               <span>{node.category}</span>
               <span>•</span>
               <span>~{node.tokens.toLocaleString()} tokens</span>
+              {node.connectionCount > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{node.connectionCount} connections</span>
+                </>
+              )}
             </div>
+            {node.health === 'shouldRemove' && (
+              <div style={{ fontSize: 10, color: '#ff5555', marginTop: 4 }}>
+                ⚠️ Remove recommended
+              </div>
+            )}
+            {node.health === 'needsUpdate' && node.version && node.latestVersion && (
+              <div style={{ fontSize: 10, color: '#ffa500', marginTop: 4 }}>
+                🔄 Update: {node.version} → {node.latestVersion}
+              </div>
+            )}
           </div>
         </Html>
       )}

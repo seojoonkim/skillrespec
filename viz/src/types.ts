@@ -1,3 +1,5 @@
+export type HealthStatus = 'healthy' | 'needsUpdate' | 'shouldRemove' | 'unused';
+
 export interface SkillNode {
   id: string;
   name: string;
@@ -11,6 +13,8 @@ export interface SkillNode {
   connections: string[];
   version?: string;         // Currently installed version (e.g., "1.0.0")
   latestVersion?: string;   // Latest available version from ClawdHub
+  health: HealthStatus;     // Health status for visualization
+  connectionCount: number;  // Number of connections (for centrality)
 }
 
 export interface SkillEdge {

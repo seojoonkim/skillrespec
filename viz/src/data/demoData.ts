@@ -1,5 +1,6 @@
-import type { VizData, SkillNode, SkillEdge, SkillCluster, VizMetrics } from '../types';
+import type { VizData, SkillNode, SkillEdge, SkillCluster, VizMetrics, HealthStatus } from '../types';
 import { theme } from '../styles/theme';
+import { recommendations } from './recommendations';
 
 // Use theme.categoryColors as single source of truth
 const CATEGORY_COLORS = theme.categoryColors;
@@ -69,7 +70,23 @@ const DEMO_SKILLS = [
   { id: 'local-places', name: 'Local Places', category: 'utility', tokens: 635, version: '1.0.0', latestVersion: '1.0.0' },            // up-to-date
 ];
 
-function generatePositions(skills: typeof DEMO_SKILLS) {
+// Health status calculation based on recommendations
+function getHealthStatus(skillId: string, version?: string, latestVersion?: string): HealthStatus {
+  // Check if should be removed
+  const removeItem = recommendations.remove.find(r => r.id === skillId || r.id.includes(skillId));
+  if (removeItem) return 'shouldRemove';
+  
+  // Check if needs update (major version bump = priority)
+  const updateItem = recommendations.update.find(u => u.id === skillId);
+  if (updateItem || (version && latestVersion && version !== latestVersion)) {
+    return 'needsUpdate';
+  }
+  
+  return 'healthy';
+}
+
+// Generate positions with centrality-based layout adjustment
+function generatePositions(skills: typeof DEMO_SKILLS, connectionCounts: Map<string, number>) {
   const categoryIndex = new Map<string, number>();
   let catIdx = 0;
   
@@ -80,11 +97,18 @@ function generatePositions(skills: typeof DEMO_SKILLS) {
   }
   
   const numCategories = categoryIndex.size;
+  const maxConnections = Math.max(...Array.from(connectionCounts.values()), 1);
   
   return skills.map((skill, i) => {
     const catI = categoryIndex.get(skill.category) || 0;
     const angle = (catI / numCategories) * Math.PI * 2;
-    const radius = 4 + Math.random() * 2;
+    
+    // Centrality-based radius: more connections = closer to center
+    const connections = connectionCounts.get(skill.id) || 0;
+    const centralityFactor = 1 - (connections / maxConnections); // 0 = hub, 1 = isolated
+    const baseRadius = 2 + centralityFactor * 4; // Hub: ~2, Isolated: ~6
+    const radius = baseRadius + Math.random() * 1;
+    
     const skillsInCat = skills.filter((s, j) => j < i && s.category === skill.category).length;
     
     return {
@@ -134,10 +158,21 @@ function findSimilarPairs(skills: typeof DEMO_SKILLS) {
 }
 
 export function generateDemoData(): VizData {
-  const positions = generatePositions(DEMO_SKILLS);
   const similarPairs = findSimilarPairs(DEMO_SKILLS);
   
-  // Build nodes
+  // Pre-calculate connection counts for centrality-based positioning
+  const connectionCounts = new Map<string, number>();
+  for (const skill of DEMO_SKILLS) {
+    connectionCounts.set(skill.id, 0);
+  }
+  for (const pair of similarPairs) {
+    connectionCounts.set(pair.skill1, (connectionCounts.get(pair.skill1) || 0) + 1);
+    connectionCounts.set(pair.skill2, (connectionCounts.get(pair.skill2) || 0) + 1);
+  }
+  
+  const positions = generatePositions(DEMO_SKILLS, connectionCounts);
+  
+  // Build nodes with health status and connection count
   const maxTokens = Math.max(...DEMO_SKILLS.map(s => s.tokens));
   const nodes: SkillNode[] = DEMO_SKILLS.map((skill, i) => ({
     id: skill.id,
@@ -152,6 +187,8 @@ export function generateDemoData(): VizData {
     connections: [],
     version: skill.version,
     latestVersion: skill.latestVersion,
+    health: getHealthStatus(skill.id, skill.version, skill.latestVersion),
+    connectionCount: connectionCounts.get(skill.id) || 0,
   }));
   
   // Build edges
