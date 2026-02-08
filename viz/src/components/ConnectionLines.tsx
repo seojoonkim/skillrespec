@@ -126,22 +126,21 @@ export default function ConnectionLines({ edges, nodes, selectedNode, hoveredNod
     );
   }, [edges, activeNode]);
 
+  // Only show edges connected to the active node
+  const visibleEdges = useMemo(() => {
+    if (!activeNode) return []; // No edges when nothing selected
+    return edges.filter(e => e.source === activeNode.id || e.target === activeNode.id);
+  }, [edges, activeNode]);
+
   return (
     <group>
-      {edges.map((edge) => {
+      {visibleEdges.map((edge) => {
         const source = nodeMap.get(edge.source);
         const target = nodeMap.get(edge.target);
         if (!source || !target) return null;
         
         const edgeKey = `${edge.source}-${edge.target}`;
-        const isHighlighted = activeConnections.has(edgeKey);
-        
-        // Skip non-highlighted edges when something is selected for performance
-        if (activeNode && !isHighlighted) return null;
-        
-        const color = isHighlighted 
-          ? (activeNode?.id === edge.source ? source.color : target.color)
-          : '#444444';
+        const color = activeNode?.id === edge.source ? source.color : target.color;
         
         return (
           <AnimatedLine
@@ -150,7 +149,7 @@ export default function ConnectionLines({ edges, nodes, selectedNode, hoveredNod
             end={new THREE.Vector3(target.x, target.y, target.z)}
             color={color}
             weight={edge.weight}
-            isHighlighted={isHighlighted}
+            isHighlighted={true}
           />
         );
       })}
