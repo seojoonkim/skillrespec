@@ -9,6 +9,8 @@ export interface SkillNode {
   color: string;
   size: number;
   connections: string[];
+  version?: string;         // Currently installed version (e.g., "1.0.0")
+  latestVersion?: string;   // Latest available version from ClawdHub
 }
 
 export interface SkillEdge {

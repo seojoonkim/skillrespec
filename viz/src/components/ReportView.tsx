@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { theme } from '../styles/theme';
 import type { VizData, SkillNode } from '../types';
+import { getUpdateType, hasUpdate, formatVersion, getUpdateColor, type UpdateType } from '../utils/version';
 
 interface ReportViewProps {
   data: VizData;
@@ -33,6 +34,7 @@ interface ExtendedSkillInfo {
   recommendationReason: string;
   tokenEfficiency: number; // connections per 1000 tokens
   removeReason?: string;
+  updateType?: UpdateType;  // Type of version update available
 }
 
 function analyzeSkillUsage(node: SkillNode, allNodes: SkillNode[]): { level: UsageLevel; score: number } {
@@ -89,11 +91,33 @@ function getRecommendation(
   usage: UsageLevel, 
   overlap: { hasOverlap: boolean; overlapWith: string[] },
   allNodes: SkillNode[]
-): { type: RecommendationType; reason: string; removeReason?: string } {
-  // Essential skills
+): { type: RecommendationType; reason: string; removeReason?: string; updateType?: UpdateType } {
+  // Check for version updates first
+  const updateType = getUpdateType(node.version || '', node.latestVersion || '');
+  const needsUpdate = hasUpdate(node.version, node.latestVersion);
+  
+  // Essential skills - but still show if update available
   const essentialPatterns = ['security', 'guard', 'protect', 'auth'];
   const isEssential = node.category === 'security' || 
     essentialPatterns.some(p => node.id.toLowerCase().includes(p));
+  
+  // If update is available, prioritize showing it
+  if (needsUpdate) {
+    const versionStr = `${formatVersion(node.version || '')} → ${formatVersion(node.latestVersion || '')}`;
+    let reason = '';
+    switch (updateType) {
+      case 'major':
+        reason = `Major update available: ${versionStr}`;
+        break;
+      case 'minor':
+        reason = `Minor update available: ${versionStr}`;
+        break;
+      case 'patch':
+        reason = `Patch update available: ${versionStr}`;
+        break;
+    }
+    return { type: 'update', reason, updateType };
+  }
   
   if (isEssential) {
     return { type: 'essential', reason: 'Core security/protection skill' };
@@ -128,11 +152,6 @@ function getRecommendation(
     }
   }
   
-  // Update recommendations
-  if (node.tokens > 5000 && usage !== 'high') {
-    return { type: 'update', reason: 'Check for optimized version' };
-  }
-  
   // Keep
   return { type: 'keep', reason: usage === 'high' ? 'Actively used' : 'Working as expected' };
 }
@@ -156,6 +175,7 @@ function analyzeAllSkills(data: VizData): ExtendedSkillInfo[] {
       recommendationReason: rec.reason,
       tokenEfficiency: Math.round(tokenEfficiency * 100) / 100,
       removeReason: rec.removeReason,
+      updateType: rec.updateType,
     };
   });
 }
@@ -583,7 +603,40 @@ function UsageBadge({ level }: { level: UsageLevel }) {
   );
 }
 
-function RecommendationBadge({ type, removeReason }: { type: RecommendationType; removeReason?: string }) {
+function RecommendationBadge({ 
+  type, 
+  removeReason, 
+  updateType 
+}: { 
+  type: RecommendationType; 
+  removeReason?: string;
+  updateType?: UpdateType;
+}) {
+  // For update badges, use color based on update type
+  if (type === 'update' && updateType) {
+    const updateColor = getUpdateColor(updateType);
+    return (
+      <span
+        title={updateColor.label}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 8px',
+          fontSize: theme.fontSize.xs,
+          color: updateColor.text,
+          background: updateColor.bg,
+          borderRadius: theme.radius.sm,
+          cursor: 'help',
+          fontWeight: updateType === 'major' ? theme.fontWeight.semibold : theme.fontWeight.normal,
+        }}
+      >
+        <span>🔄</span>
+        {updateColor.label}
+      </span>
+    );
+  }
+  
   const config = {
     keep: { label: 'Keep', color: theme.colors.success, icon: '✓' },
     update: { label: 'Update', color: theme.colors.warning, icon: '🔄' },
@@ -618,7 +671,7 @@ function RecommendationBadge({ type, removeReason }: { type: RecommendationType;
 function ExpandedSkillDetails({ skill }: { skill: ExtendedSkillInfo }) {
   return (
     <tr>
-      <td colSpan={7} style={{
+      <td colSpan={8} style={{
         padding: '0',
         background: theme.colors.bgTertiary,
       }}>
@@ -1191,6 +1244,22 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
               <tr>
                 <SortHeader label="Skill" sortKeyName="name" />
                 <SortHeader label="Category" sortKeyName="category" width="100px" />
+                <th style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontSize: theme.fontSize.xs,
+                  fontWeight: theme.fontWeight.medium,
+                  color: theme.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  borderBottom: `1px solid ${theme.colors.border}`,
+                  background: theme.colors.bgSecondary,
+                  position: 'sticky',
+                  top: 0,
+                  width: '140px',
+                }}>
+                  Version
+                </th>
                 <SortHeader label="Tokens" sortKeyName="tokens" width="90px" />
                 <SortHeader label="Connections" sortKeyName="connections" width="100px" />
                 <SortHeader label="Usage" sortKeyName="usage" width="100px" />
@@ -1210,7 +1279,7 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
                 }}>
                   Overlap
                 </th>
-                <SortHeader label="Action" sortKeyName="recommendation" width="110px" />
+                <SortHeader label="Action" sortKeyName="recommendation" width="130px" />
               </tr>
             </thead>
             <tbody>
@@ -1286,6 +1355,39 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
                           {skill.node.category}
                         </span>
                       </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {skill.node.version ? (
+                          <div style={{
+                            fontSize: theme.fontSize.xs,
+                            fontFamily: theme.fonts.mono,
+                          }}>
+                            <span style={{ color: theme.colors.textSecondary }}>
+                              {formatVersion(skill.node.version)}
+                            </span>
+                            {skill.updateType && skill.updateType !== 'none' && (
+                              <>
+                                <span style={{ 
+                                  color: theme.colors.textMuted,
+                                  margin: '0 4px',
+                                }}>→</span>
+                                <span style={{ 
+                                  color: getUpdateColor(skill.updateType).text,
+                                  fontWeight: theme.fontWeight.semibold,
+                                }}>
+                                  {formatVersion(skill.node.latestVersion || '')}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{
+                            fontSize: theme.fontSize.xs,
+                            color: theme.colors.textMuted,
+                          }}>
+                            —
+                          </span>
+                        )}
+                      </td>
                       <td style={{
                         padding: '12px 16px',
                         fontSize: theme.fontSize.sm,
@@ -1336,6 +1438,7 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
                         <RecommendationBadge 
                           type={skill.recommendation} 
                           removeReason={skill.removeReason}
+                          updateType={skill.updateType}
                         />
                       </td>
                     </tr>
