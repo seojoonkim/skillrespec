@@ -355,7 +355,7 @@ export default function App() {
               </div>
             )}
             
-            {/* CENTER COLUMN: 3D Canvas */}
+            {/* CENTER COLUMN: 3D Canvas + Info Panel */}
             <div style={{
               position: 'relative',
               overflow: 'hidden',
@@ -363,7 +363,8 @@ export default function App() {
               flexDirection: 'column',
               paddingBottom: isMobile ? '56px' : 0,
             }}>
-              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              {/* 3D Canvas Area */}
+              <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
                 <Canvas
                   camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
                   gl={{ antialias: true, alpha: false }}
@@ -440,6 +441,18 @@ export default function App() {
                   </div>
                 )}
               </div>
+              
+              {/* Info Panel - Inside center column */}
+              {!isMobile && (
+                <InfoPanel 
+                  node={selectedNode || hoveredNode}
+                  allNodes={data.nodes}
+                  edges={data.edges}
+                  metrics={data.metrics}
+                  onClose={() => setSelectedNode(null)}
+                  mobile={isMobile}
+                />
+              )}
             </div>
             
             {/* RIGHT COLUMN: Recommendations */}
@@ -455,20 +468,6 @@ export default function App() {
               </div>
             )}
           </div>
-          
-          {/* BOTTOM PANEL: Skill Info */}
-          {!isMobile && (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <InfoPanel 
-                node={selectedNode || hoveredNode}
-                allNodes={data.nodes}
-                edges={data.edges}
-                metrics={data.metrics}
-                onClose={() => setSelectedNode(null)}
-                mobile={isMobile}
-              />
-            </div>
-          )}
           
           {/* Mobile: Info panel above nav */}
           {isMobile && (selectedNode || hoveredNode) && (
