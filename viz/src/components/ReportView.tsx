@@ -1,267 +1,174 @@
-// ═══════════════════════════════════════════════════════════
-// ReportView - 테이블/리스트 형태의 스킬 리포트
-// Linear/Vercel 스타일 플랫 디자인
-// ═══════════════════════════════════════════════════════════
-
 import { useState, useMemo } from 'react';
+import { theme } from '../styles/theme';
 import { useTranslation } from '../i18n/useTranslation';
 import type { VizData, SkillNode } from '../types';
 
 interface ReportViewProps {
   data: VizData;
-  selectedCategory: string | null;
-  onSelectCategory: (category: string | null) => void;
-  onSelectSkill: (skill: SkillNode) => void;
-  isMobile?: boolean;
 }
 
 type SortKey = 'name' | 'category' | 'tokens' | 'connections';
 type SortOrder = 'asc' | 'desc';
 
-// 카테고리별 아이콘 맵핑
-const categoryIcons: Record<string, string> = {
-  'Marketing': '📢',
-  'Development': '💻',
-  'Security': '🔒',
-  'DevOps': '⚙️',
-  'Data': '📊',
-  'Analytics': '📈',
-  'Design': '🎨',
-  'Communication': '💬',
-  'Management': '📋',
-  'AI': '🤖',
-  'Infrastructure': '🏗️',
-  'Testing': '🧪',
-  'Documentation': '📝',
-};
-
-function getCategoryIcon(category: string): string {
-  return categoryIcons[category] || '📦';
-}
-
-export default function ReportView({ 
-  data, 
-  selectedCategory,
-  onSelectCategory,
-  onSelectSkill,
-  isMobile = false,
-}: ReportViewProps) {
+export default function ReportView({ data }: ReportViewProps) {
   const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<SortKey>('tokens');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 필터링 및 정렬된 스킬
-  const filteredSkills = useMemo(() => {
-    let skills = [...data.nodes];
-    
-    // 카테고리 필터
-    if (selectedCategory) {
-      skills = skills.filter(s => s.category === selectedCategory);
+  const categories = useMemo(() => {
+    const cats = [...new Set(data.nodes.map(n => n.category))];
+    return cats.sort();
+  }, [data.nodes]);
+
+  const sortedNodes = useMemo(() => {
+    let nodes = [...data.nodes];
+
+    // Filter by category
+    if (filterCategory) {
+      nodes = nodes.filter(n => n.category === filterCategory);
     }
-    
-    // 검색 필터
+
+    // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      skills = skills.filter(s => 
-        s.name.toLowerCase().includes(query) ||
-        s.category.toLowerCase().includes(query)
+      nodes = nodes.filter(n => 
+        n.name.toLowerCase().includes(query) ||
+        n.id.toLowerCase().includes(query)
       );
     }
-    
-    // 정렬
-    skills.sort((a, b) => {
-      let valueA: string | number;
-      let valueB: string | number;
-      
+
+    // Sort
+    nodes.sort((a, b) => {
+      let comparison = 0;
       switch (sortKey) {
         case 'name':
-          valueA = a.name.toLowerCase();
-          valueB = b.name.toLowerCase();
+          comparison = a.name.localeCompare(b.name);
           break;
         case 'category':
-          valueA = a.category.toLowerCase();
-          valueB = b.category.toLowerCase();
+          comparison = a.category.localeCompare(b.category);
           break;
         case 'tokens':
-          valueA = a.tokens;
-          valueB = b.tokens;
+          comparison = a.tokens - b.tokens;
           break;
         case 'connections':
-          valueA = a.connections.length;
-          valueB = b.connections.length;
+          comparison = a.connections.length - b.connections.length;
           break;
-        default:
-          valueA = a.name;
-          valueB = b.name;
       }
-      
-      if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
-    
-    return skills;
-  }, [data.nodes, selectedCategory, searchQuery, sortKey, sortOrder]);
 
-  // 카테고리 통계
-  const categoryStats = useMemo(() => {
-    const stats: Record<string, { count: number; tokens: number; color: string }> = {};
-    data.nodes.forEach(node => {
-      if (!stats[node.category]) {
-        stats[node.category] = { count: 0, tokens: 0, color: node.color };
-      }
-      stats[node.category].count += 1;
-      stats[node.category].tokens += node.tokens;
-    });
-    return Object.entries(stats).sort((a, b) => b[1].tokens - a[1].tokens);
-  }, [data.nodes]);
+    return nodes;
+  }, [data.nodes, sortKey, sortOrder, filterCategory, searchQuery]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
       setSortOrder('desc');
     }
   };
 
-  const SortIcon = ({ column }: { column: SortKey }) => {
-    if (sortKey !== column) return <span style={{ opacity: 0.3 }}>↕</span>;
-    return <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
-  };
-
-  // 총 토큰 계산
-  const totalTokens = useMemo(() => 
-    filteredSkills.reduce((sum, s) => sum + s.tokens, 0), 
-    [filteredSkills]
+  const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => (
+    <th
+      onClick={() => handleSort(sortKeyName)}
+      style={{
+        padding: '12px 16px',
+        textAlign: 'left',
+        fontSize: theme.fontSize.xs,
+        fontWeight: theme.fontWeight.medium,
+        color: theme.colors.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        cursor: 'pointer',
+        userSelect: 'none',
+        borderBottom: `1px solid ${theme.colors.border}`,
+        background: theme.colors.bgSecondary,
+        position: 'sticky',
+        top: 0,
+      }}
+    >
+      {label}
+      {sortKey === sortKeyName && (
+        <span style={{ marginLeft: '4px', opacity: 0.6 }}>
+          {sortOrder === 'asc' ? '↑' : '↓'}
+        </span>
+      )}
+    </th>
   );
 
   return (
     <div style={{
-      height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      background: '#0a0a0a',
-      color: '#e5e5e5',
-      overflow: 'hidden',
+      height: '100%',
+      background: theme.colors.bgPrimary,
     }}>
-      {/* 상단: 검색 + 필터 */}
+      {/* Filters */}
       <div style={{
-        padding: isMobile ? '12px' : '16px 20px',
-        borderBottom: '1px solid #262626',
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
         gap: '12px',
+        padding: '16px 24px',
+        borderBottom: `1px solid ${theme.colors.border}`,
+        flexWrap: 'wrap',
       }}>
-        {/* 검색 */}
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search skills..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: '200px',
+            padding: '8px 12px',
+            background: theme.colors.bgSecondary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radius.md,
+            color: theme.colors.textPrimary,
+            fontSize: theme.fontSize.sm,
+            fontFamily: theme.fonts.sans,
+            outline: 'none',
+          }}
+        />
+
+        {/* Category filter */}
+        <select
+          value={filterCategory || ''}
+          onChange={(e) => setFilterCategory(e.target.value || null)}
+          style={{
+            padding: '8px 12px',
+            background: theme.colors.bgSecondary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radius.md,
+            color: theme.colors.textPrimary,
+            fontSize: theme.fontSize.sm,
+            fontFamily: theme.fonts.sans,
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="">All Categories</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
+        {/* Results count */}
         <div style={{
-          flex: 1,
-          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          fontSize: theme.fontSize.sm,
+          color: theme.colors.textMuted,
         }}>
-          <span style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontSize: '14px',
-            color: '#666',
-          }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search skills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px 10px 36px',
-              background: '#141414',
-              border: '1px solid #262626',
-              borderRadius: '8px',
-              color: '#e5e5e5',
-              fontSize: '13px',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              outline: 'none',
-            }}
-          />
+          {sortedNodes.length} skills
         </div>
-
-        {/* 카테고리 필터 태그 (데스크탑만) */}
-        {!isMobile && (
-          <div style={{
-            display: 'flex',
-            gap: '6px',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-          }}>
-            <button
-              onClick={() => onSelectCategory(null)}
-              style={{
-                padding: '6px 12px',
-                background: selectedCategory === null ? '#10b981' : '#1a1a1a',
-                border: '1px solid',
-                borderColor: selectedCategory === null ? '#10b981' : '#262626',
-                borderRadius: '6px',
-                color: selectedCategory === null ? '#000' : '#999',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              All ({data.nodes.length})
-            </button>
-            {categoryStats.slice(0, 4).map(([cat, stat]) => (
-              <button
-                key={cat}
-                onClick={() => onSelectCategory(selectedCategory === cat ? null : cat)}
-                style={{
-                  padding: '6px 10px',
-                  background: selectedCategory === cat ? '#262626' : '#141414',
-                  border: '1px solid',
-                  borderColor: selectedCategory === cat ? '#404040' : '#262626',
-                  borderRadius: '6px',
-                  color: selectedCategory === cat ? '#fff' : '#888',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: stat.color,
-                }} />
-                {cat} ({stat.count})
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* 요약 바 */}
-      <div style={{
-        padding: '8px 20px',
-        background: '#141414',
-        borderBottom: '1px solid #262626',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '12px',
-        color: '#888',
-      }}>
-        <span>
-          {t.reportView.total}: <strong style={{ color: '#10b981' }}>{filteredSkills.length}</strong> skills
-        </span>
-        <span>
-          {t.reportView.tokens}: <strong style={{ color: '#10b981' }}>{totalTokens.toLocaleString()}</strong>
-        </span>
-      </div>
-
-      {/* 테이블 */}
+      {/* Table */}
       <div style={{
         flex: 1,
         overflow: 'auto',
@@ -269,195 +176,140 @@ export default function ReportView({
         <table style={{
           width: '100%',
           borderCollapse: 'collapse',
-          fontSize: isMobile ? '12px' : '13px',
+          fontFamily: theme.fonts.sans,
         }}>
           <thead>
-            <tr style={{
-              background: '#141414',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}>
-              <th 
-                onClick={() => handleSort('name')}
-                style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontWeight: 600,
-                  color: '#888',
-                  borderBottom: '1px solid #262626',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                }}
-              >
-                {t.reportView.skillName} <SortIcon column="name" />
-              </th>
-              {!isMobile && (
-                <th 
-                  onClick={() => handleSort('category')}
-                  style={{
-                    padding: '12px 16px',
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    color: '#888',
-                    borderBottom: '1px solid #262626',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                  }}
-                >
-                  {t.reportView.category} <SortIcon column="category" />
-                </th>
-              )}
-              <th 
-                onClick={() => handleSort('tokens')}
-                style={{
-                  padding: '12px 16px',
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#888',
-                  borderBottom: '1px solid #262626',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  minWidth: '80px',
-                }}
-              >
-                {t.reportView.tokens} <SortIcon column="tokens" />
-              </th>
-              <th 
-                onClick={() => handleSort('connections')}
-                style={{
-                  padding: '12px 16px',
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#888',
-                  borderBottom: '1px solid #262626',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  minWidth: '60px',
-                }}
-              >
-                {t.reportView.connections} <SortIcon column="connections" />
+            <tr>
+              <SortHeader label="Skill" sortKeyName="name" />
+              <SortHeader label="Category" sortKeyName="category" />
+              <SortHeader label="Tokens" sortKeyName="tokens" />
+              <SortHeader label="Connections" sortKeyName="connections" />
+              <th style={{
+                padding: '12px 16px',
+                textAlign: 'left',
+                fontSize: theme.fontSize.xs,
+                fontWeight: theme.fontWeight.medium,
+                color: theme.colors.textMuted,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                borderBottom: `1px solid ${theme.colors.border}`,
+                background: theme.colors.bgSecondary,
+                position: 'sticky',
+                top: 0,
+              }}>
+                Status
               </th>
             </tr>
           </thead>
           <tbody>
-            {filteredSkills.length === 0 ? (
-              <tr>
-                <td 
-                  colSpan={isMobile ? 3 : 4}
+            {sortedNodes.map((node) => {
+              const color = theme.categoryColors[node.category] || theme.colors.textMuted;
+              const isHeavy = node.tokens > 3000;
+              const hasHighOverlap = node.connections.length > 5;
+              
+              return (
+                <tr
+                  key={node.id}
                   style={{
-                    padding: '40px 16px',
-                    textAlign: 'center',
-                    color: '#666',
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    transition: 'background 0.15s ease',
                   }}
-                >
-                  {t.reportView.noSkills}
-                </td>
-              </tr>
-            ) : (
-              filteredSkills.map((skill, idx) => (
-                <tr 
-                  key={skill.id}
-                  onClick={() => onSelectSkill(skill)}
-                  style={{
-                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                    cursor: 'pointer',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = theme.colors.bgSecondary}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={{
                     padding: '12px 16px',
-                    borderBottom: '1px solid #1a1a1a',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      fontSize: theme.fontSize.sm,
+                      fontWeight: theme.fontWeight.medium,
+                      color: theme.colors.textPrimary,
+                    }}>
+                      {node.name}
+                    </div>
+                    <div style={{
+                      fontSize: theme.fontSize.xs,
+                      color: theme.colors.textMuted,
+                      fontFamily: theme.fonts.mono,
+                    }}>
+                      {node.id}
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: theme.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                      textTransform: 'capitalize',
+                    }}>
                       <span style={{
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        background: skill.color,
-                        flexShrink: 0,
+                        background: color,
                       }} />
-                      <span style={{ fontWeight: 500, color: '#e5e5e5' }}>
-                        {skill.name}
-                      </span>
-                      {isMobile && (
-                        <span style={{
-                          fontSize: '10px',
-                          color: '#666',
-                          marginLeft: 'auto',
-                        }}>
-                          {skill.category}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  {!isMobile && (
-                    <td style={{
-                      padding: '12px 16px',
-                      borderBottom: '1px solid #1a1a1a',
-                      color: '#888',
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {getCategoryIcon(skill.category)} {skill.category}
-                      </span>
-                    </td>
-                  )}
-                  <td style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #1a1a1a',
-                    textAlign: 'right',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    color: '#10b981',
-                  }}>
-                    {skill.tokens.toLocaleString()}
+                      {node.category}
+                    </span>
                   </td>
                   <td style={{
                     padding: '12px 16px',
-                    borderBottom: '1px solid #1a1a1a',
-                    textAlign: 'right',
-                    fontFamily: '"JetBrains Mono", monospace',
-                    color: skill.connections.length > 3 ? '#10b981' : '#666',
+                    fontSize: theme.fontSize.sm,
+                    fontFamily: theme.fonts.mono,
+                    color: isHeavy ? theme.colors.warning : theme.colors.textSecondary,
                   }}>
-                    {skill.connections.length}
+                    ~{node.tokens.toLocaleString()}
+                  </td>
+                  <td style={{
+                    padding: '12px 16px',
+                    fontSize: theme.fontSize.sm,
+                    fontFamily: theme.fonts.mono,
+                    color: hasHighOverlap ? theme.colors.warning : theme.colors.textSecondary,
+                  }}>
+                    {node.connections.length}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {isHeavy && (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        fontSize: theme.fontSize.xs,
+                        color: theme.colors.warning,
+                        background: `${theme.colors.warning}15`,
+                        borderRadius: theme.radius.sm,
+                        marginRight: '4px',
+                      }}>
+                        Heavy
+                      </span>
+                    )}
+                    {hasHighOverlap && (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        fontSize: theme.fontSize.xs,
+                        color: theme.colors.info,
+                        background: `${theme.colors.info}15`,
+                        borderRadius: theme.radius.sm,
+                      }}>
+                        Connected
+                      </span>
+                    )}
+                    {!isHeavy && !hasHighOverlap && (
+                      <span style={{
+                        fontSize: theme.fontSize.xs,
+                        color: theme.colors.textMuted,
+                      }}>
+                        —
+                      </span>
+                    )}
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })}
           </tbody>
         </table>
       </div>
-
-      {/* 하단: 카테고리 분포 (데스크탑) */}
-      {!isMobile && (
-        <div style={{
-          padding: '12px 20px',
-          borderTop: '1px solid #262626',
-          display: 'flex',
-          gap: '4px',
-          alignItems: 'center',
-        }}>
-          {categoryStats.map(([cat, stat]) => (
-            <div
-              key={cat}
-              title={`${cat}: ${stat.count} skills, ${stat.tokens.toLocaleString()} tokens`}
-              style={{
-                flex: stat.tokens,
-                height: '6px',
-                background: stat.color,
-                borderRadius: '3px',
-                opacity: selectedCategory === null || selectedCategory === cat ? 1 : 0.3,
-                transition: 'opacity 0.2s',
-              }}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
