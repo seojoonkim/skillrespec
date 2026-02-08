@@ -72,19 +72,25 @@ export function SkillNode({
         />
       </Sphere>
 
-      {/* Label on hover */}
+      {/* Label on hover - positioned based on node location to avoid UI overlap */}
       {(localHover || isHovered || isSelected) && (
         <Html
-          position={[0, size * scale + 0.5, 0]}
+          position={[
+            position[0] > 3 ? -1.5 : position[0] < -3 ? 1.5 : 0,
+            size * scale + 0.5,
+            0
+          ]}
           center
+          zIndexRange={[0, 50]}
           style={{
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
+            zIndex: 10,
           }}
         >
           <div
             style={{
-              background: 'rgba(0, 0, 0, 0.85)',
+              background: 'rgba(0, 0, 0, 0.92)',
               color: '#fff',
               padding: '6px 12px',
               borderRadius: '6px',
@@ -92,6 +98,7 @@ export function SkillNode({
               fontFamily: 'system-ui, sans-serif',
               border: `2px solid ${color}`,
               boxShadow: `0 0 20px ${color}40`,
+              backdropFilter: 'blur(8px)',
             }}
           >
             <strong>{skill.name}</strong>

@@ -367,6 +367,8 @@ export default function RecommendationsPanel({ position = 'right' }: Recommendat
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        zIndex: 900,
+        pointerEvents: 'auto',
       }}>
         {/* Tabs */}
         <div style={{
@@ -526,6 +528,8 @@ export default function RecommendationsPanel({ position = 'right' }: Recommendat
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
+      zIndex: 900,
+      pointerEvents: 'auto',
     }}>
       {/* Header */}
       <div style={{

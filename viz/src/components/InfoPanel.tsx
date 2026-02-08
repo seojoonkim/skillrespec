@@ -422,6 +422,8 @@ export default function InfoPanel({ node, allNodes, edges, metrics, onClose, mob
       maxHeight: 'calc(100vh - 180px)',
       display: 'flex',
       flexDirection: 'column',
+      zIndex: 1000,
+      pointerEvents: 'auto',
     }}>
       {/* Header with gradient */}
       <div style={{
