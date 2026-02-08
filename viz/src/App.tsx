@@ -412,6 +412,8 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                   healthScore={healthScore}
                   nodes={data.nodes}
                   edges={data.edges}
+                  onSelectNode={setSelectedNode}
+                  selectedNode={selectedNode}
                 />
               </div>
             )}

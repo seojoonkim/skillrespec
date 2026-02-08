@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { theme } from '../styles/theme';
 import type { SkillCluster, SkillEdge, SkillNode } from '../types';
 
@@ -18,6 +19,8 @@ interface CategoryLegendProps {
   healthScore?: number;
   nodes?: SkillNode[];
   edges?: SkillEdge[];
+  onSelectNode?: (node: SkillNode) => void;
+  selectedNode?: SkillNode | null;
 }
 
 function calculateConnectionStats(nodes: SkillNode[], edges: SkillEdge[]): ConnectionStats {
@@ -82,12 +85,45 @@ export default function CategoryLegend({
   healthScore,
   nodes = [],
   edges = [],
+  onSelectNode,
+  selectedNode,
 }: CategoryLegendProps) {
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  
   const totalSkills = clusters.reduce((sum, c) => sum + c.skills.length, 0);
   const sortedClusters = [...clusters].sort((a, b) => b.skills.length - a.skills.length);
   
   const connectionStats = calculateConnectionStats(nodes, edges);
   const hasStats = healthScore !== undefined && nodes.length > 0;
+
+  const toggleExpand = (category: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
+  const skillsByCategory = useMemo(() => {
+    const map = new Map<string, SkillNode[]>();
+    nodes.forEach(node => {
+      const list = map.get(node.category) || [];
+      list.push(node);
+      map.set(node.category, list);
+    });
+    // Sort skills by name within each category
+    map.forEach((skills, category) => {
+      map.set(category, skills.sort((a, b) => a.name.localeCompare(b.name)));
+    });
+    return map;
+  }, [nodes]);
+
+  const allNodesSorted = useMemo(() => 
+    [...nodes].sort((a, b) => a.name.localeCompare(b.name)), 
+    [nodes]
+  );
 
   // Mobile layout
   if (mobile) {
@@ -323,125 +359,284 @@ export default function CategoryLegend({
       </div>
 
       <div style={{ padding: '8px', overflowY: 'auto', flex: 1 }}>
-        {/* All filter */}
-        <button
-          onClick={() => onSelect(null)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '10px 12px',
-            background: selectedCategory === null ? theme.colors.bgElevated : 'transparent',
-            border: 'none',
-            borderRadius: theme.radius.md,
-            cursor: 'pointer',
-            color: selectedCategory === null ? theme.colors.accent : theme.colors.textSecondary,
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.medium,
-            textAlign: 'left',
-            marginBottom: '4px',
-            transition: theme.transitions.fast,
-          }}
-          onMouseEnter={(e) => {
-            if (selectedCategory !== null) {
-              e.currentTarget.style.background = theme.colors.bgHover;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedCategory !== null) {
-              e.currentTarget.style.background = 'transparent';
-            }
-          }}
-        >
-          <span>All</span>
-          <span style={{ 
-            fontFamily: theme.fonts.mono,
-            fontSize: theme.fontSize.xs,
-          }}>
-            {totalSkills}
-          </span>
-        </button>
+        {/* All filter - Tree node */}
+        <div>
+          <button
+            onClick={(e) => toggleExpand('__all__', e)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 12px',
+              background: selectedCategory === null && !expandedCategories.has('__all__') ? theme.colors.bgElevated : 'transparent',
+              border: 'none',
+              borderRadius: theme.radius.md,
+              cursor: 'pointer',
+              color: selectedCategory === null ? theme.colors.accent : theme.colors.textSecondary,
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.medium,
+              textAlign: 'left',
+              marginBottom: '2px',
+              transition: theme.transitions.fast,
+            }}
+            onMouseEnter={(e) => {
+              if (selectedCategory !== null || expandedCategories.has('__all__')) {
+                e.currentTarget.style.background = theme.colors.bgHover;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedCategory !== null || expandedCategories.has('__all__')) {
+                e.currentTarget.style.background = 'transparent';
+              }
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ 
+                fontSize: '10px', 
+                color: theme.colors.textMuted,
+                width: '12px',
+              }}>
+                {expandedCategories.has('__all__') ? '▾' : '▸'}
+              </span>
+              All
+            </span>
+            <span style={{ 
+              fontFamily: theme.fonts.mono,
+              fontSize: theme.fontSize.xs,
+            }}>
+              {totalSkills}
+            </span>
+          </button>
+          
+          {/* Expanded skill list for All */}
+          {expandedCategories.has('__all__') && onSelectNode && (
+            <div style={{ 
+              paddingLeft: '20px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+            }}>
+              {allNodesSorted.map((node, idx) => {
+                const isLast = idx === allNodesSorted.length - 1;
+                const isNodeSelected = selectedNode?.id === node.id;
+                const nodeColor = theme.categoryColors[node.category] || theme.colors.textMuted;
+                
+                return (
+                  <button
+                    key={node.id}
+                    onClick={() => onSelectNode(node)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '6px 8px',
+                      background: isNodeSelected ? theme.colors.bgElevated : 'transparent',
+                      border: 'none',
+                      borderRadius: theme.radius.sm,
+                      cursor: 'pointer',
+                      color: isNodeSelected ? theme.colors.textPrimary : theme.colors.textMuted,
+                      fontSize: theme.fontSize.xs,
+                      textAlign: 'left',
+                      transition: theme.transitions.fast,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isNodeSelected) {
+                        e.currentTarget.style.background = theme.colors.bgHover;
+                        e.currentTarget.style.color = theme.colors.textSecondary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isNodeSelected) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = theme.colors.textMuted;
+                      }
+                    }}
+                  >
+                    <span style={{ 
+                      color: theme.colors.textSubtle,
+                      fontSize: '10px',
+                      fontFamily: theme.fonts.mono,
+                    }}>
+                      {isLast ? '└' : '├'}
+                    </span>
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: nodeColor,
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ 
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {node.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-        {/* Category items */}
+        {/* Category items - Tree nodes */}
         {sortedClusters.map(cluster => {
           const isSelected = selectedCategory === cluster.category;
+          const isExpanded = expandedCategories.has(cluster.category);
           const color = theme.categoryColors[cluster.category] || theme.colors.textMuted;
           const percentage = Math.round((cluster.skills.length / totalSkills) * 100);
+          const categorySkills = skillsByCategory.get(cluster.category) || [];
           
           return (
-            <button
-              key={cluster.id}
-              onClick={() => onSelect(isSelected ? null : cluster.category)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 12px',
-                background: isSelected ? theme.colors.bgElevated : 'transparent',
-                border: 'none',
-                borderRadius: theme.radius.md,
-                cursor: 'pointer',
-                color: theme.colors.textPrimary,
-                fontSize: theme.fontSize.sm,
-                textAlign: 'left',
-                marginBottom: '2px',
-                transition: theme.transitions.fast,
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.background = theme.colors.bgHover;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-            >
-              {/* Color dot with glow effect */}
-              <span style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: color,
-                boxShadow: isSelected ? `0 0 8px ${color}` : 'none',
-                flexShrink: 0,
-                transition: theme.transitions.fast,
-              }} />
-              
-              {/* Name */}
-              <span style={{ 
-                flex: 1,
-                fontWeight: isSelected ? theme.fontWeight.medium : theme.fontWeight.normal,
-                color: isSelected ? theme.colors.textPrimary : theme.colors.textSecondary,
-                textTransform: 'capitalize',
-                wordBreak: 'break-word',
-                lineHeight: 1.3,
-              }}>
-                {cluster.name}
-              </span>
-              
-              {/* Count & percentage */}
-              <div style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontFamily: theme.fonts.mono,
-                fontSize: theme.fontSize.xs,
-              }}>
-                <span style={{ color: isSelected ? color : theme.colors.textMuted }}>
-                  {cluster.skills.length}
-                </span>
+            <div key={cluster.id}>
+              <button
+                onClick={(e) => toggleExpand(cluster.category, e)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: isSelected && !isExpanded ? theme.colors.bgElevated : 'transparent',
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  cursor: 'pointer',
+                  color: theme.colors.textPrimary,
+                  fontSize: theme.fontSize.sm,
+                  textAlign: 'left',
+                  marginBottom: '2px',
+                  transition: theme.transitions.fast,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected || isExpanded) {
+                    e.currentTarget.style.background = theme.colors.bgHover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected || isExpanded) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                {/* Expand/collapse icon */}
                 <span style={{ 
-                  color: theme.colors.textSubtle,
-                  fontSize: '10px',
+                  fontSize: '10px', 
+                  color: theme.colors.textMuted,
+                  width: '12px',
                 }}>
-                  {percentage}%
+                  {isExpanded ? '▾' : '▸'}
                 </span>
-              </div>
-            </button>
+                
+                {/* Color dot with glow effect */}
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: color,
+                  boxShadow: isSelected ? `0 0 8px ${color}` : 'none',
+                  flexShrink: 0,
+                  transition: theme.transitions.fast,
+                }} />
+                
+                {/* Name */}
+                <span style={{ 
+                  flex: 1,
+                  fontWeight: isSelected ? theme.fontWeight.medium : theme.fontWeight.normal,
+                  color: isSelected ? theme.colors.textPrimary : theme.colors.textSecondary,
+                  textTransform: 'capitalize',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.3,
+                }}>
+                  {cluster.name}
+                </span>
+                
+                {/* Count & percentage */}
+                <div style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontFamily: theme.fonts.mono,
+                  fontSize: theme.fontSize.xs,
+                }}>
+                  <span style={{ color: isSelected ? color : theme.colors.textMuted }}>
+                    {cluster.skills.length}
+                  </span>
+                  <span style={{ 
+                    color: theme.colors.textSubtle,
+                    fontSize: '10px',
+                  }}>
+                    {percentage}%
+                  </span>
+                </div>
+              </button>
+              
+              {/* Expanded skill list */}
+              {isExpanded && onSelectNode && (
+                <div style={{ 
+                  paddingLeft: '20px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                }}>
+                  {categorySkills.map((node, idx) => {
+                    const isLast = idx === categorySkills.length - 1;
+                    const isNodeSelected = selectedNode?.id === node.id;
+                    
+                    return (
+                      <button
+                        key={node.id}
+                        onClick={() => onSelectNode(node)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          padding: '6px 8px',
+                          background: isNodeSelected ? theme.colors.bgElevated : 'transparent',
+                          border: 'none',
+                          borderRadius: theme.radius.sm,
+                          cursor: 'pointer',
+                          color: isNodeSelected ? theme.colors.textPrimary : theme.colors.textMuted,
+                          fontSize: theme.fontSize.xs,
+                          textAlign: 'left',
+                          transition: theme.transitions.fast,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isNodeSelected) {
+                            e.currentTarget.style.background = theme.colors.bgHover;
+                            e.currentTarget.style.color = theme.colors.textSecondary;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isNodeSelected) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = theme.colors.textMuted;
+                          }
+                        }}
+                      >
+                        <span style={{ 
+                          color: theme.colors.textSubtle,
+                          fontSize: '10px',
+                          fontFamily: theme.fonts.mono,
+                        }}>
+                          {isLast ? '└' : '├'}
+                        </span>
+                        <span style={{ 
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {node.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
