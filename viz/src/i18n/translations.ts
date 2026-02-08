@@ -65,14 +65,7 @@ export interface Translations {
   categories: {
     title: string;
     all: string;
-    productivity: string;
-    development: string;
-    media: string;
-    communication: string;
-    design: string;
-    marketing: string;
-    security: string;
-    utility: string;
+    // 카테고리 이름은 영어 그대로 유지 (번역 X)
   };
   footer: {
     rotate: string;
@@ -156,14 +149,6 @@ export const translations: Record<Language, Translations> = {
     categories: {
       title: '카테고리',
       all: '전체 보기',
-      productivity: '생산성',
-      development: '개발',
-      media: '미디어',
-      communication: '커뮤니케이션',
-      design: '디자인',
-      marketing: '마케팅',
-      security: '보안',
-      utility: '유틸리티',
     },
     footer: {
       rotate: '드래그로 회전',
@@ -245,14 +230,6 @@ export const translations: Record<Language, Translations> = {
     categories: {
       title: 'Categories',
       all: 'View All',
-      productivity: 'Productivity',
-      development: 'Development',
-      media: 'Media',
-      communication: 'Communication',
-      design: 'Design',
-      marketing: 'Marketing',
-      security: 'Security',
-      utility: 'Utility',
     },
     footer: {
       rotate: 'Drag to rotate',
@@ -334,14 +311,6 @@ export const translations: Record<Language, Translations> = {
     categories: {
       title: 'カテゴリ',
       all: 'すべて表示',
-      productivity: '生産性',
-      development: '開発',
-      media: 'メディア',
-      communication: 'コミュニケーション',
-      design: 'デザイン',
-      marketing: 'マーケティング',
-      security: 'セキュリティ',
-      utility: 'ユーティリティ',
     },
     footer: {
       rotate: 'ドラッグで回転',
@@ -423,14 +392,6 @@ export const translations: Record<Language, Translations> = {
     categories: {
       title: '类别',
       all: '查看全部',
-      productivity: '生产力',
-      development: '开发',
-      media: '媒体',
-      communication: '通信',
-      design: '设计',
-      marketing: '营销',
-      security: '安全',
-      utility: '实用工具',
     },
     footer: {
       rotate: '拖动旋转',
