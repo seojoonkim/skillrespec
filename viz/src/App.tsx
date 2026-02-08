@@ -16,6 +16,9 @@ import HealthDashboard from './components/HealthDashboard';
 import MarketplacePanel from './components/MarketplacePanel';
 import PresetPanel from './components/PresetPanel';
 import LintPanel from './components/LintPanel';
+import TeamPanel from './components/TeamPanel';
+import AnalyticsPanel from './components/AnalyticsPanel';
+import AIRecommendations from './components/AIRecommendations';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
@@ -209,7 +212,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTools, setShowTools] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health'>('categories');
-  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'marketplace' | 'presets' | 'lint'>('recommend');
+  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'ai' | 'marketplace' | 'presets' | 'lint' | 'team' | 'analytics'>('recommend');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
 
@@ -656,7 +659,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
               )}
             </div>
             
-            {/* RIGHT COLUMN: Recommendations / Marketplace / Presets / Lint */}
+            {/* RIGHT COLUMN: Recommendations / AI / Marketplace / Presets / Lint / Team / Analytics */}
             {(isDesktop || isTablet) && (
               <div style={{
                 background: theme.colors.bgSecondary,
@@ -671,12 +674,16 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                   borderBottom: `1px solid ${theme.colors.border}`,
                   background: theme.colors.bgTertiary,
                   flexShrink: 0,
+                  overflowX: 'auto',
                 }}>
                   {[
                     { id: 'recommend', label: '🎯', title: 'Recommendations' },
+                    { id: 'ai', label: '🤖', title: 'AI Recommendations' },
                     { id: 'marketplace', label: '🏪', title: 'Marketplace' },
                     { id: 'presets', label: '🎛️', title: 'Presets' },
                     { id: 'lint', label: '🔍', title: 'Lint' },
+                    { id: 'team', label: '👥', title: 'Team Sync' },
+                    { id: 'analytics', label: '📊', title: 'Analytics' },
                   ].map(({ id, label, title }) => (
                     <button
                       key={id}
@@ -684,7 +691,8 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                       title={title}
                       style={{
                         flex: 1,
-                        padding: '10px 8px',
+                        minWidth: '40px',
+                        padding: '10px 6px',
                         background: rightPanelTab === id ? theme.colors.bgSecondary : 'transparent',
                         border: 'none',
                         borderBottom: rightPanelTab === id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
@@ -706,9 +714,12 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                 {/* Tab Content */}
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   {rightPanelTab === 'recommend' && <RecommendationsPanel embedded />}
+                  {rightPanelTab === 'ai' && <AIRecommendations nodes={data.nodes} embedded />}
                   {rightPanelTab === 'marketplace' && <MarketplacePanel installedSkills={data.nodes} embedded />}
                   {rightPanelTab === 'presets' && <PresetPanel activeSkills={data.nodes} embedded />}
                   {rightPanelTab === 'lint' && <LintPanel skills={data.nodes} selectedSkill={selectedNode} embedded />}
+                  {rightPanelTab === 'team' && <TeamPanel activeSkills={data.nodes} embedded />}
+                  {rightPanelTab === 'analytics' && <AnalyticsPanel nodes={data.nodes} embedded />}
                 </div>
               </div>
             )}
