@@ -15,6 +15,7 @@ import {
   formatTokenBudget 
 } from './catalog.js';
 import { generateVizData, writeVizData } from './viz-data.js';
+import open from 'open';
 
 const program = new Command();
 
@@ -237,6 +238,109 @@ program
       }
     } catch (error) {
       console.error('❌ Failed to generate visualization:', (error as Error).message);
+    }
+  });
+
+program
+  .command('web [dir]')
+  .description('Analyze skills and open interactive web visualization')
+  .option('-c, --category <cat>', 'Filter by category')
+  .option('-s, --source <src>', 'Filter by source')
+  .option('--local', 'Analyze local directory')
+  .action(async (dir: string | undefined, options: { category?: string; source?: string; local?: boolean }) => {
+    console.log(`\n⚔️  SkillRespec Analyzer\n`);
+    
+    const isLocal = options.local || dir;
+    const skillsPath = dir || './skills';
+    
+    let vizData;
+    
+    if (isLocal) {
+      console.log(`🔍 Scanning ${skillsPath}...`);
+      const scanResult = await scanSkills(skillsPath);
+      
+      if (scanResult.totalCount === 0) {
+        console.log('❌ No skills found in directory.');
+        process.exit(1);
+      }
+      
+      console.log(`   Found ${scanResult.totalCount} skills\n`);
+      console.log(`📊 Analyzing...`);
+      
+      // Convert scanned skills to catalog format for viz generation
+      const catalogSkills = scanResult.skills.map(s => ({
+        id: s.id || s.name.toLowerCase().replace(/\s+/g, '-'),
+        name: s.name,
+        description: s.description || '',
+        source: 'local' as const,
+        path: s.path,
+        size: s.size || 0,
+        estimatedTokens: s.estimatedTokens || Math.round((s.size || 0) / 4),
+        category: s.category || 'other',
+        dependencies: s.dependencies || [],
+        conflicts: s.conflicts || [],
+      }));
+      
+      vizData = generateVizData(catalogSkills);
+    } else {
+      // Use catalog
+      console.log(`📚 Loading skill catalog...`);
+      try {
+        const catalog = await loadCatalog();
+        let skills = catalog.skills;
+        
+        if (options.category) {
+          skills = skills.filter(s => s.category === options.category);
+        }
+        if (options.source) {
+          skills = skills.filter(s => s.source === options.source);
+        }
+        
+        console.log(`   Found ${skills.length} skills\n`);
+        console.log(`📊 Analyzing...`);
+        
+        vizData = generateVizData(skills);
+      } catch (error) {
+        console.error('❌ Failed to load catalog:', (error as Error).message);
+        console.error('   Run with a directory path to analyze local skills');
+        process.exit(1);
+      }
+    }
+    
+    // Calculate summary stats
+    const totalTokens = vizData.nodes.reduce((sum, n) => sum + n.tokens, 0);
+    const categories: Record<string, number> = {};
+    for (const node of vizData.nodes) {
+      categories[node.category] = (categories[node.category] || 0) + 1;
+    }
+    
+    // Calculate health score
+    const balance = vizData.metrics?.categoryBalance || 0.5;
+    const depth = vizData.metrics?.avgDepth || 1;
+    const healthScore = Math.round((balance * 40 + Math.min(depth / 3, 1) * 30 + 30) * 10) / 10;
+    
+    console.log(`\n✅ Analysis complete!`);
+    console.log(`   Total skills: ${vizData.nodes.length}`);
+    console.log(`   Total tokens: ~${totalTokens.toLocaleString()}`);
+    console.log(`   Health score: ${healthScore || 75}%\n`);
+    
+    // Encode data to base64url
+    const jsonData = JSON.stringify(vizData);
+    const encoded = Buffer.from(jsonData).toString('base64url');
+    
+    // Check if data is too large for URL (browsers typically support ~2KB-8KB in URL)
+    const VIZ_URL = 'https://skillrespec.vercel.app';
+    
+    if (encoded.length > 8000) {
+      console.log(`⚠️  Data too large for URL (${Math.round(encoded.length / 1024)}KB)`);
+      console.log(`   Writing to viz-data.json instead...\n`);
+      await writeVizData(vizData, './viz-data.json');
+      console.log(`🌐 Opening visualization (using local data file)...`);
+      await open(VIZ_URL);
+    } else {
+      const url = `${VIZ_URL}/#${encoded}`;
+      console.log(`🔗 Opening results in browser...\n`);
+      await open(url);
     }
   });
 

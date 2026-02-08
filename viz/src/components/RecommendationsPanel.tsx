@@ -42,8 +42,7 @@ function Tab({
     <button
       onClick={onClick}
       style={{
-        flex: 1,
-        padding: '12px 8px',
+        padding: '12px 12px',
         background: 'transparent',
         border: 'none',
         borderBottom: `2px solid ${active ? theme.colors.textPrimary : 'transparent'}`,
@@ -58,7 +57,7 @@ function Tab({
         gap: '5px',
         transition: theme.transitions.fast,
         whiteSpace: 'nowrap',
-        minWidth: 0,
+        flexShrink: 0,
       }}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.color = theme.colors.textSecondary;
@@ -502,6 +501,8 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
         overflowX: 'auto',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
       }}>
         <Tab 
           active={activeTab === 'diagnosis'} 

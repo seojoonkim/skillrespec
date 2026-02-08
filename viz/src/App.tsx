@@ -179,6 +179,39 @@ export default function App() {
 
   useEffect(() => {
     const loadData = async () => {
+      // 1. Check for URL hash data first (from CLI)
+      const hash = window.location.hash;
+      if (hash && hash.length > 100) {
+        try {
+          // Decode base64url from hash
+          const base64Data = hash.slice(1); // Remove leading #
+          const jsonStr = atob(base64Data.replace(/-/g, '+').replace(/_/g, '/'));
+          const json = JSON.parse(jsonStr);
+          
+          const normalizedData: VizData = {
+            ...json,
+            nodes: (json.nodes || []).map((node: SkillNode) => ({
+              ...node,
+              color: theme.categoryColors[node.category] || node.color,
+              health: node.health || 'healthy',
+              connectionCount: node.connectionCount || (node.connections?.length || 0),
+            })),
+            clusters: (json.clusters || []).map((cluster: { id: string; name: string; category: string; skills: string[]; centroid: { x: number; y: number; z: number }; density: number; color: string }) => ({
+              ...cluster,
+              color: theme.categoryColors[cluster.category] || cluster.color,
+            })),
+          };
+          setData(normalizedData);
+          setLoading(false);
+          console.log('✅ Loaded data from URL hash');
+          return;
+        } catch (e) {
+          console.error('Failed to decode hash data:', e);
+          // Fall through to other methods
+        }
+      }
+      
+      // 2. Try loading from viz-data.json file
       try {
         const response = await fetch('/viz-data.json');
         if (response.ok) {
@@ -199,6 +232,7 @@ export default function App() {
           throw new Error('No data file');
         }
       } catch {
+        // 3. Fall back to demo data
         setData(generateDemoData());
       }
       setLoading(false);
