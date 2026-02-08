@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import SkillNodes from './components/SkillNodes';
@@ -8,10 +8,53 @@ import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
 import ReportView from './components/ReportView';
+import AnalyzePage from './pages/AnalyzePage';
+import ResultsPage from './pages/ResultsPage';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
+
+// ═══════════════════════════════════════════════════════════
+// Router - Simple hash-based routing
+// ═══════════════════════════════════════════════════════════
+
+type Route = '/' | '/analyze' | '/results';
+
+function useRouter(): [Route, (path: string) => void] {
+  const getRoute = (): Route => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#/analyze')) return '/analyze';
+    if (hash.startsWith('#/results')) return '/results';
+    // Check for encoded result data in hash (legacy format)
+    if (hash.length > 10 && !hash.includes('/')) return '/results';
+    return '/';
+  };
+
+  const [route, setRoute] = useState<Route>(getRoute);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setRoute(getRoute());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const navigate = useCallback((path: string) => {
+    if (path.startsWith('/results#')) {
+      // Special case: results with data
+      window.location.hash = path.slice(1); // Remove leading /
+    } else if (path === '/') {
+      window.location.hash = '';
+      setRoute('/');
+    } else {
+      window.location.hash = path;
+    }
+  }, []);
+
+  return [route, navigate];
+}
 
 // ═══════════════════════════════════════════════════════════
 // View Mode Types
@@ -144,9 +187,9 @@ function MobileNavToggle({
 }
 
 // ═══════════════════════════════════════════════════════════
-// Main App
+// Demo Page (Home)
 // ═══════════════════════════════════════════════════════════
-export default function App() {
+function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [data, setData] = useState<VizData | null>(null);
   const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<SkillNode | null>(null);
@@ -179,39 +222,6 @@ export default function App() {
 
   useEffect(() => {
     const loadData = async () => {
-      // 1. Check for URL hash data first (from CLI)
-      const hash = window.location.hash;
-      if (hash && hash.length > 100) {
-        try {
-          // Decode base64url from hash
-          const base64Data = hash.slice(1); // Remove leading #
-          const jsonStr = atob(base64Data.replace(/-/g, '+').replace(/_/g, '/'));
-          const json = JSON.parse(jsonStr);
-          
-          const normalizedData: VizData = {
-            ...json,
-            nodes: (json.nodes || []).map((node: SkillNode) => ({
-              ...node,
-              color: theme.categoryColors[node.category] || node.color,
-              health: node.health || 'healthy',
-              connectionCount: node.connectionCount || (node.connections?.length || 0),
-            })),
-            clusters: (json.clusters || []).map((cluster: { id: string; name: string; category: string; skills: string[]; centroid: { x: number; y: number; z: number }; density: number; color: string }) => ({
-              ...cluster,
-              color: theme.categoryColors[cluster.category] || cluster.color,
-            })),
-          };
-          setData(normalizedData);
-          setLoading(false);
-          console.log('✅ Loaded data from URL hash');
-          return;
-        } catch (e) {
-          console.error('Failed to decode hash data:', e);
-          // Fall through to other methods
-        }
-      }
-      
-      // 2. Try loading from viz-data.json file
       try {
         const response = await fetch('/viz-data.json');
         if (response.ok) {
@@ -232,7 +242,6 @@ export default function App() {
           throw new Error('No data file');
         }
       } catch {
-        // 3. Fall back to demo data
         setData(generateDemoData());
       }
       setLoading(false);
@@ -277,9 +286,7 @@ export default function App() {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* ═══════════════════════════════════════════════════════════
-          HEADER - Compact & Modern
-      ═══════════════════════════════════════════════════════════ */}
+      {/* Header */}
       <header style={{
         height: isMobile ? '48px' : '52px',
         padding: '0 16px',
@@ -317,6 +324,28 @@ export default function App() {
           background: theme.colors.border,
         }} />
 
+        {/* Analyze Button */}
+        <button
+          onClick={() => onNavigate('/analyze')}
+          style={{
+            padding: '7px 14px',
+            background: `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`,
+            border: 'none',
+            borderRadius: theme.radius.full,
+            color: theme.colors.bgPrimary,
+            fontSize: theme.fontSize.sm,
+            fontWeight: theme.fontWeight.semibold,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: theme.transitions.fast,
+            fontFamily: theme.fonts.sans,
+          }}
+        >
+          🔍 Analyze Your Skills
+        </button>
+
         {/* Spacer (left) */}
         <div style={{ flex: 1 }} />
 
@@ -338,16 +367,14 @@ export default function App() {
             color: theme.colors.textSecondary,
             fontWeight: theme.fontWeight.medium,
           }}>
-            Simon
+            Demo
           </span>
           <span style={{ opacity: 0.4 }}>·</span>
           <span>{dateStr}</span>
         </span>
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA
-      ═══════════════════════════════════════════════════════════ */}
+      {/* Main Content */}
       {viewMode === '3d' ? (
         <div style={{
           flex: 1,
@@ -360,9 +387,9 @@ export default function App() {
             flex: 1,
             display: 'grid',
             gridTemplateColumns: isDesktop 
-              ? '220px 1fr 420px' 
+              ? '220px 1fr 340px' 
               : isTablet 
-                ? '200px 1fr 360px' 
+                ? '200px 1fr 300px' 
                 : '1fr',
             overflow: 'hidden',
             minHeight: 0,
@@ -585,4 +612,20 @@ export default function App() {
       )}
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main App with Router
+// ═══════════════════════════════════════════════════════════
+export default function App() {
+  const [route, navigate] = useRouter();
+
+  switch (route) {
+    case '/analyze':
+      return <AnalyzePage onNavigate={navigate} />;
+    case '/results':
+      return <ResultsPage onNavigate={navigate} />;
+    default:
+      return <DemoPage onNavigate={navigate} />;
+  }
 }
