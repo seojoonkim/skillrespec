@@ -1,4 +1,3 @@
-import { useTranslation } from '../i18n/useTranslation';
 import { theme } from '../styles/theme';
 import type { VizData, SkillCluster } from '../types';
 
@@ -54,11 +53,11 @@ function ProgressBar({ value, label }: { value: number; label: string }) {
   );
 }
 
-function getGradeInfo(score: number, t: ReturnType<typeof useTranslation>['t']) {
-  if (score >= 80) return { text: t.header.grade.excellent, color: theme.colors.success };
-  if (score >= 65) return { text: t.header.grade.good, color: theme.colors.success };
-  if (score >= 50) return { text: t.header.grade.average, color: theme.colors.warning };
-  return { text: t.header.grade.poor, color: theme.colors.error };
+function getGradeInfo(score: number) {
+  if (score >= 80) return { text: 'Excellent', color: theme.colors.success };
+  if (score >= 65) return { text: 'Good', color: theme.colors.success };
+  if (score >= 50) return { text: 'Average', color: theme.colors.warning };
+  return { text: 'Poor', color: theme.colors.error };
 }
 
 function getCategoryStats(clusters: SkillCluster[], nodes: VizData['nodes']) {
@@ -77,18 +76,19 @@ export default function DiagnosticReportModal({
   data,
   healthScore,
 }: DiagnosticReportModalProps) {
-  const { t, language } = useTranslation();
-  
   if (!isOpen) return null;
   
-  const gradeInfo = getGradeInfo(healthScore, t);
+  const gradeInfo = getGradeInfo(healthScore);
   const categoryStats = getCategoryStats(data.clusters, data.nodes);
   
   const now = new Date();
-  const dateStr = now.toLocaleDateString(
-    language === 'ko' ? 'ko-KR' : language === 'ja' ? 'ja-JP' : language === 'zh' ? 'zh-CN' : 'en-US',
-    { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }
-  );
+  const dateStr = now.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   
   return (
     <>
@@ -134,7 +134,7 @@ export default function DiagnosticReportModal({
             color: theme.colors.textPrimary,
             margin: 0,
           }}>
-            {t.diagnosis.title}
+            📊 Skill Set Diagnostic Report
           </h2>
           <button
             onClick={onClose}
@@ -161,10 +161,10 @@ export default function DiagnosticReportModal({
           fontSize: theme.fontSize.xs,
           color: theme.colors.textMuted,
         }}>
-          <div>{t.diagnosis.target}: <span style={{ color: theme.colors.textSecondary }}>seojoonkim</span></div>
-          <div>{t.diagnosis.dateTime}: <span style={{ color: theme.colors.textSecondary }}>{dateStr}</span></div>
-          <div>{t.diagnosis.totalSkills}: <span style={{ color: theme.colors.textSecondary }}>{data.nodes.length}</span></div>
-          <div>{t.diagnosis.categories}: <span style={{ color: theme.colors.textSecondary }}>{data.clusters.length}</span></div>
+          <div>Target: <span style={{ color: theme.colors.textSecondary }}>seojoonkim</span></div>
+          <div>Date & Time: <span style={{ color: theme.colors.textSecondary }}>{dateStr}</span></div>
+          <div>Total Skills: <span style={{ color: theme.colors.textSecondary }}>{data.nodes.length}</span></div>
+          <div>Categories: <span style={{ color: theme.colors.textSecondary }}>{data.clusters.length}</span></div>
         </div>
         
         {/* Content */}
@@ -195,7 +195,7 @@ export default function DiagnosticReportModal({
               color: theme.colors.textMuted,
               marginTop: '8px',
             }}>
-              {t.diagnosis.overallScore}: <span style={{ color: gradeInfo.color }}>{gradeInfo.text}</span>
+              Overall Score: <span style={{ color: gradeInfo.color }}>{gradeInfo.text}</span>
             </div>
           </div>
           
@@ -209,7 +209,7 @@ export default function DiagnosticReportModal({
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}>
-              {t.diagnosis.categoryDistribution}
+              Category Distribution
             </h3>
             {categoryStats.slice(0, 5).map((stat) => (
               <ProgressBar
@@ -230,7 +230,7 @@ export default function DiagnosticReportModal({
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}>
-              {t.diagnosis.strengths}
+              Strengths
             </h3>
             <div style={{
               padding: '12px',
@@ -239,7 +239,7 @@ export default function DiagnosticReportModal({
               fontSize: theme.fontSize.sm,
               color: theme.colors.textSecondary,
             }}>
-              {t.diagnosis.messages.securityPresent}
+              Security skills present
             </div>
           </div>
           
@@ -253,7 +253,7 @@ export default function DiagnosticReportModal({
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}>
-              {t.diagnosis.improvements}
+              Areas for Improvement
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{
@@ -263,7 +263,7 @@ export default function DiagnosticReportModal({
                 fontSize: theme.fontSize.sm,
                 color: theme.colors.textSecondary,
               }}>
-                {t.diagnosis.messages.noDataAnalytics}
+                No Data/Analytics skills
               </div>
               <div style={{
                 padding: '12px',
@@ -272,7 +272,7 @@ export default function DiagnosticReportModal({
                 fontSize: theme.fontSize.sm,
                 color: theme.colors.textSecondary,
               }}>
-                {t.diagnosis.messages.noDevOps}
+                DevOps/CI-CD capability lacking
               </div>
             </div>
           </div>
@@ -287,13 +287,13 @@ export default function DiagnosticReportModal({
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}>
-              {t.diagnosis.actionItems}
+              Action Items
             </h3>
             
             {[
-              { action: t.diagnosis.actions.install, skill: 'sql-query', priority: 'high' },
-              { action: t.diagnosis.actions.remove, skill: 'ui-ux-pro-max-skill', priority: 'medium' },
-              { action: t.diagnosis.actions.update, skill: 'prompt-guard v3.0', priority: 'low' },
+              { action: 'Install', skill: 'sql-query', priority: 'high' },
+              { action: 'Remove', skill: 'ui-ux-pro-max-skill', priority: 'medium' },
+              { action: 'Update', skill: 'prompt-guard v3.0', priority: 'low' },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex',

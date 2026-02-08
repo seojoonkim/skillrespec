@@ -7,11 +7,9 @@ import InfoPanel from './components/InfoPanel';
 import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
-import LanguageSelector from './components/LanguageSelector';
 import DiagnosticReportModal from './components/DiagnosticReportModal';
 import ReportView from './components/ReportView';
 import { useWindowSize } from './hooks/useWindowSize';
-import { useTranslation } from './i18n/useTranslation';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
@@ -22,16 +20,18 @@ import { generateDemoData } from './data/demoData';
 type ViewMode = '3d' | 'report';
 
 // ═══════════════════════════════════════════════════════════
-// Stat Card Component
+// Stat Card Component (with description)
 // ═══════════════════════════════════════════════════════════
 function StatCard({ 
   value, 
   label, 
+  description,
   sublabel,
   accent = false,
 }: { 
   value: string | number; 
   label: string; 
+  description: string;
   sublabel?: string;
   accent?: boolean;
 }) {
@@ -40,13 +40,13 @@ function StatCard({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '16px 24px',
+      padding: '12px 20px',
       background: theme.colors.bgTertiary,
       borderRadius: theme.radius.md,
       minWidth: '100px',
     }}>
       <span style={{
-        fontSize: '32px',
+        fontSize: '28px',
         fontWeight: theme.fontWeight.bold,
         color: accent ? theme.colors.accent : theme.colors.textPrimary,
         fontFamily: theme.fonts.mono,
@@ -57,7 +57,7 @@ function StatCard({
       <span style={{
         fontSize: theme.fontSize.xs,
         color: theme.colors.textMuted,
-        marginTop: '8px',
+        marginTop: '6px',
         textTransform: 'uppercase',
         letterSpacing: '0.05em',
       }}>
@@ -72,6 +72,16 @@ function StatCard({
           {sublabel}
         </span>
       )}
+      <span style={{
+        fontSize: '10px',
+        color: theme.colors.textMuted,
+        marginTop: '4px',
+        textAlign: 'center',
+        maxWidth: '100px',
+        lineHeight: 1.3,
+      }}>
+        {description}
+      </span>
     </div>
   );
 }
@@ -145,8 +155,6 @@ function MobileNavToggle({
   activePanel: 'none' | 'categories' | 'recommendations';
   onToggle: (panel: 'none' | 'categories' | 'recommendations') => void;
 }) {
-  const { t } = useTranslation();
-  
   return (
     <div style={{
       position: 'fixed',
@@ -177,7 +185,7 @@ function MobileNavToggle({
             cursor: 'pointer',
           }}
         >
-          {id === 'categories' ? t.mobile.categories : t.mobile.recommend}
+          {id === 'categories' ? 'Categories' : 'Recommend'}
         </button>
       ))}
     </div>
@@ -198,7 +206,6 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
-  const { t, language } = useTranslation();
 
   const center = useMemo(() => {
     if (!data || !data.nodes.length) return { x: 0, y: 0, z: 0 };
@@ -221,11 +228,11 @@ export default function App() {
   }, [data]);
 
   const gradeInfo = useMemo(() => {
-    if (healthScore >= 80) return { text: t.header.grade.excellent, color: theme.colors.success };
-    if (healthScore >= 65) return { text: t.header.grade.good, color: theme.colors.success };
-    if (healthScore >= 50) return { text: t.header.grade.average, color: theme.colors.warning };
-    return { text: t.header.grade.poor, color: theme.colors.error };
-  }, [healthScore, t]);
+    if (healthScore >= 80) return { text: 'Excellent', color: theme.colors.success };
+    if (healthScore >= 65) return { text: 'Good', color: theme.colors.success };
+    if (healthScore >= 50) return { text: 'Average', color: theme.colors.warning };
+    return { text: 'Poor', color: theme.colors.error };
+  }, [healthScore]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -265,10 +272,11 @@ export default function App() {
     : data.edges;
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString(
-    language === 'ko' ? 'ko-KR' : language === 'ja' ? 'ja-JP' : language === 'zh' ? 'zh-CN' : 'en-US',
-    { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }
-  );
+  const dateStr = now.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  });
 
   return (
     <div style={{ 
@@ -282,98 +290,91 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          REPORT HEADER
+          SLIM HEADER
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
-        padding: isMobile ? '16px' : '24px 32px',
+        padding: isMobile ? '12px 16px' : '16px 24px',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
       }}>
-        {/* Title & Actions Row */}
+        {/* Title Row */}
         <div style={{
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '16px',
+          marginBottom: '12px',
         }}>
-          <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px',
-            }}>
-              <span style={{ fontSize: '24px' }}>📊</span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <span style={{ fontSize: '20px' }}>📊</span>
+            <div>
               <h1 style={{
-                fontSize: isMobile ? theme.fontSize.lg : theme.fontSize.xl,
+                fontSize: isMobile ? theme.fontSize.md : theme.fontSize.lg,
                 fontWeight: theme.fontWeight.semibold,
                 color: theme.colors.textPrimary,
                 margin: 0,
+                lineHeight: 1.2,
               }}>
-                {t.diagnosis.title.replace('📊 ', '')}
+                Skill Set Diagnostic Report
               </h1>
-            </div>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: isMobile ? '8px' : '24px',
-              fontSize: theme.fontSize.sm,
-              color: theme.colors.textMuted,
-            }}>
-              <span>{t.diagnosis.target}: <span style={{ color: theme.colors.textSecondary }}>Simon (seojoonkim)</span></span>
-              <span>{t.diagnosis.dateTime}: <span style={{ color: theme.colors.textSecondary }}>{dateStr}</span></span>
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textMuted,
+                marginTop: '2px',
+              }}>
+                Simon · {dateStr}
+              </div>
             </div>
           </div>
           
-          {/* Actions */}
+          {/* Full Report Button */}
           {!isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                onClick={() => setShowReport(true)}
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radius.md,
-                  color: theme.colors.textSecondary,
-                  fontSize: theme.fontSize.sm,
-                  fontWeight: theme.fontWeight.medium,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                📄 {t.header.report}
-              </button>
-              <LanguageSelector />
-            </div>
+            <button
+              onClick={() => setShowReport(true)}
+              style={{
+                padding: '6px 12px',
+                background: 'transparent',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.md,
+                color: theme.colors.textSecondary,
+                fontSize: theme.fontSize.xs,
+                fontWeight: theme.fontWeight.medium,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              📄 Full Report
+            </button>
           )}
         </div>
 
         {/* Stats Row */}
         <div style={{
           display: 'flex',
-          gap: isMobile ? '8px' : '16px',
+          gap: isMobile ? '8px' : '12px',
           flexWrap: 'wrap',
         }}>
           <StatCard 
-            value={healthScore} 
-            label={t.header.healthScore}
+            value={`${healthScore}%`}
+            label="Health"
+            description="How balanced your skills are"
             sublabel={gradeInfo.text}
             accent 
           />
           <StatCard 
             value={data.nodes.length} 
-            label={t.header.skills}
+            label="Skills"
+            description="Total skills installed"
           />
           <StatCard 
             value={data.edges.length} 
-            label={t.header.connections}
-          />
-          <StatCard 
-            value={data.clusters.length} 
-            label={t.diagnosis.categories}
+            label="Connections"
+            description="Relationships between skills"
           />
         </div>
       </header>
@@ -384,15 +385,11 @@ export default function App() {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
+        justifyContent: 'flex-start',
+        padding: '10px 24px',
         borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <ViewToggle mode={viewMode} onChange={setViewMode} />
-        
-        {isMobile && (
-          <LanguageSelector compact />
-        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
