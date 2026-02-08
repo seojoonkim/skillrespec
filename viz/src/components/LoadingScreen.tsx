@@ -1,3 +1,5 @@
+import { theme } from '../styles/theme';
+
 interface LoadingScreenProps {
   error?: string;
 }
@@ -11,50 +13,61 @@ export default function LoadingScreen({ error }: LoadingScreenProps) {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: '#0a0a0f',
-      color: '#fff',
+      background: theme.colors.bgPrimary,
+      color: theme.colors.textPrimary,
+      fontFamily: theme.fonts.sans,
     }}>
       {error ? (
         <>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>❌</div>
-          <h1 style={{ fontSize: 24, marginBottom: 8 }}>Error</h1>
-          <p style={{ color: '#888' }}>{error}</p>
+          <h1 style={{ 
+            fontSize: theme.fontSize.xl, 
+            marginBottom: '8px',
+            fontWeight: theme.fontWeight.semibold,
+          }}>
+            Error
+          </h1>
+          <p style={{ color: theme.colors.textMuted }}>{error}</p>
         </>
       ) : (
         <>
           <div style={{ 
-            fontSize: 48, 
-            marginBottom: 20,
-            animation: 'pulse 2s ease-in-out infinite',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '24px',
           }}>
-            ⚔️
+            <span style={{ fontSize: '24px' }}>⚔️</span>
+            <h1 style={{ 
+              fontSize: theme.fontSize.xxl, 
+              fontWeight: theme.fontWeight.semibold,
+              margin: 0,
+            }}>
+              SkillRespec
+            </h1>
           </div>
-          <h1 style={{ 
-            fontSize: 24, 
-            marginBottom: 8,
-            background: 'linear-gradient(135deg, #00ffff, #ff00ff)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            SkillRespec
-          </h1>
-          <p style={{ color: '#888' }}>Loading skills...</p>
           
-          {/* Loading bar */}
+          <p style={{ 
+            color: theme.colors.textMuted,
+            fontSize: theme.fontSize.sm,
+            marginBottom: '24px',
+          }}>
+            Loading skills...
+          </p>
+          
+          {/* Simple loading bar */}
           <div style={{
-            width: 200,
-            height: 4,
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: 2,
-            marginTop: 20,
+            width: '200px',
+            height: '2px',
+            background: theme.colors.border,
+            borderRadius: '1px',
             overflow: 'hidden',
           }}>
             <div style={{
-              width: '30%',
+              width: '40%',
               height: '100%',
-              background: 'linear-gradient(90deg, #00ffff, #ff00ff)',
-              borderRadius: 2,
-              animation: 'loading 1.5s ease-in-out infinite',
+              background: theme.colors.accent,
+              borderRadius: '1px',
+              animation: 'loading 1.2s ease-in-out infinite',
             }} />
           </div>
         </>
@@ -63,8 +76,7 @@ export default function LoadingScreen({ error }: LoadingScreenProps) {
       <style>{`
         @keyframes loading {
           0% { transform: translateX(-100%); }
-          50% { transform: translateX(250%); }
-          100% { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
         }
       `}</style>
     </div>
