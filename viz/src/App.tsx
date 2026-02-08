@@ -19,6 +19,8 @@ import LintPanel from './components/LintPanel';
 import TeamPanel from './components/TeamPanel';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import AIRecommendations from './components/AIRecommendations';
+import HistoryPanel from './components/HistoryPanel';
+import UpdatesPanel from './components/UpdatesPanel';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
@@ -211,8 +213,8 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTools, setShowTools] = useState(false);
-  const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health'>('categories');
-  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'ai' | 'marketplace' | 'presets' | 'lint' | 'team' | 'analytics'>('recommend');
+  const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health' | 'history'>('categories');
+  const [rightPanelTab, setRightPanelTab] = useState<'recommend' | 'ai' | 'marketplace' | 'presets' | 'lint' | 'team' | 'analytics' | 'updates'>('recommend');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
 
@@ -516,6 +518,27 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                   >
                     💊 Health
                   </button>
+                  <button
+                    onClick={() => setLeftPanelTab('history')}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: leftPanelTab === 'history' ? theme.colors.bgSecondary : 'transparent',
+                      border: 'none',
+                      borderBottom: leftPanelTab === 'history' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
+                      color: leftPanelTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted,
+                      fontSize: theme.fontSize.sm,
+                      fontWeight: theme.fontWeight.medium,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontFamily: theme.fonts.sans,
+                    }}
+                  >
+                    ⏰ History
+                  </button>
                 </div>
                 
                 {/* Tab Content */}
@@ -533,10 +556,12 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                       onSelectNode={setSelectedNode}
                       selectedNode={selectedNode}
                     />
-                  ) : (
+                  ) : leftPanelTab === 'health' ? (
                     <div style={{ padding: '12px' }}>
                       <HealthDashboard nodes={data.nodes} />
                     </div>
+                  ) : (
+                    <HistoryPanel currentSkills={data.nodes} embedded />
                   )}
                 </div>
               </div>
@@ -684,6 +709,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                     { id: 'lint', label: '🔍', title: 'Lint' },
                     { id: 'team', label: '👥', title: 'Team Sync' },
                     { id: 'analytics', label: '📊', title: 'Analytics' },
+                    { id: 'updates', label: '🔄', title: 'Updates' },
                   ].map(({ id, label, title }) => (
                     <button
                       key={id}
@@ -720,6 +746,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                   {rightPanelTab === 'lint' && <LintPanel skills={data.nodes} selectedSkill={selectedNode} embedded />}
                   {rightPanelTab === 'team' && <TeamPanel activeSkills={data.nodes} embedded />}
                   {rightPanelTab === 'analytics' && <AnalyticsPanel nodes={data.nodes} embedded />}
+                  {rightPanelTab === 'updates' && <UpdatesPanel skills={data.nodes} embedded />}
                 </div>
               </div>
             )}

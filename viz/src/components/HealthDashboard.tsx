@@ -2,7 +2,7 @@
 // Health Dashboard - Overall skill health score visualization
 // ═══════════════════════════════════════════════════════════
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { theme } from '../styles/theme';
 import { 
   calculateDashboardHealth, 
@@ -11,6 +11,7 @@ import {
   type DashboardHealth,
   type SkillHealthScore,
 } from '../lib/healthScore';
+import ConflictsSection from './ConflictsSection';
 import type { SkillNode } from '../types';
 
 interface HealthDashboardProps {
@@ -261,6 +262,7 @@ function SkillHealthItem({ item }: { item: SkillHealthScore }) {
 
 export default function HealthDashboard({ nodes, compact = false }: HealthDashboardProps) {
   const health = useMemo(() => calculateDashboardHealth(nodes), [nodes]);
+  const [showConflicts, setShowConflicts] = useState(true);
 
   if (compact) {
     return (
@@ -294,149 +296,155 @@ export default function HealthDashboard({ nodes, compact = false }: HealthDashbo
   }
 
   return (
-    <div style={{
-      background: theme.colors.bgSecondary,
-      borderRadius: theme.radius.lg,
-      border: `1px solid ${theme.colors.border}`,
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Main Health Card */}
       <div style={{
-        padding: '16px',
-        borderBottom: `1px solid ${theme.colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
+        background: theme.colors.bgSecondary,
+        borderRadius: theme.radius.lg,
+        border: `1px solid ${theme.colors.border}`,
+        overflow: 'hidden',
       }}>
-        <span style={{ fontSize: '20px' }}>💊</span>
-        <div>
-          <div style={{
-            fontSize: theme.fontSize.md,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-          }}>
-            Skill Health Overview
-          </div>
-          <div style={{
-            fontSize: theme.fontSize.sm,
-            color: theme.colors.textMuted,
-          }}>
-            Security (40%) + Freshness (30%) + Usage (30%)
-          </div>
-        </div>
-      </div>
-
-      {/* Main Score */}
-      <div style={{
-        padding: '24px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '24px',
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}>
-        <ScoreRing score={health.averageScore} grade={health.averageGrade} size={100} />
-        <div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '8px',
-          }}>
-            <GradeBadge grade={health.averageGrade} size="lg" />
-            <span style={{
+        {/* Header */}
+        <div style={{
+          padding: '16px',
+          borderBottom: `1px solid ${theme.colors.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <span style={{ fontSize: '20px' }}>💊</span>
+          <div>
+            <div style={{
+              fontSize: theme.fontSize.md,
+              fontWeight: theme.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              Skill Health Overview
+            </div>
+            <div style={{
               fontSize: theme.fontSize.sm,
               color: theme.colors.textMuted,
             }}>
-              Average Grade
-            </span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, auto)',
-            gap: '12px',
-            fontSize: theme.fontSize.sm,
-          }}>
-            <div>
-              <span style={{ color: theme.colors.textMuted }}>Skills: </span>
-              <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
-                {health.totalSkills}
-              </span>
-            </div>
-            <div>
-              <span style={{ color: theme.colors.error }}>Critical: </span>
-              <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
-                {health.criticalCount}
-              </span>
-            </div>
-            <div>
-              <span style={{ color: theme.colors.warning }}>Outdated: </span>
-              <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
-                {health.outdatedCount}
-              </span>
+              Security (40%) + Freshness (30%) + Usage (30%)
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Grade Distribution */}
-      <div style={{ padding: '16px' }}>
+        {/* Main Score */}
         <div style={{
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.medium,
-          color: theme.colors.textSecondary,
-          marginBottom: '12px',
+          padding: '24px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '24px',
+          borderBottom: `1px solid ${theme.colors.border}`,
         }}>
-          Grade Distribution
-        </div>
-        <GradeDistribution distribution={health.gradeDistribution} />
-      </div>
-
-      {/* Top & Bottom Skills */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        borderTop: `1px solid ${theme.colors.border}`,
-      }}>
-        {/* Top Healthy */}
-        <div style={{
-          padding: '16px',
-          borderRight: `1px solid ${theme.colors.border}`,
-        }}>
-          <div style={{
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.medium,
-            color: theme.colors.success,
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}>
-            <span>✨</span> Healthiest
+          <ScoreRing score={health.averageScore} grade={health.averageGrade} size={100} />
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '8px',
+            }}>
+              <GradeBadge grade={health.averageGrade} size="lg" />
+              <span style={{
+                fontSize: theme.fontSize.sm,
+                color: theme.colors.textMuted,
+              }}>
+                Average Grade
+              </span>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, auto)',
+              gap: '12px',
+              fontSize: theme.fontSize.sm,
+            }}>
+              <div>
+                <span style={{ color: theme.colors.textMuted }}>Skills: </span>
+                <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
+                  {health.totalSkills}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: theme.colors.error }}>Critical: </span>
+                <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
+                  {health.criticalCount}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: theme.colors.warning }}>Outdated: </span>
+                <span style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.semibold }}>
+                  {health.outdatedCount}
+                </span>
+              </div>
+            </div>
           </div>
-          {health.topHealthy.slice(0, 3).map(item => (
-            <SkillHealthItem key={item.skillId} item={item} />
-          ))}
         </div>
 
-        {/* Bottom Healthy */}
+        {/* Grade Distribution */}
         <div style={{ padding: '16px' }}>
           <div style={{
             fontSize: theme.fontSize.sm,
             fontWeight: theme.fontWeight.medium,
-            color: theme.colors.error,
+            color: theme.colors.textSecondary,
             marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
           }}>
-            <span>⚠️</span> Needs Attention
+            Grade Distribution
           </div>
-          {health.bottomHealthy.slice(0, 3).map(item => (
-            <SkillHealthItem key={item.skillId} item={item} />
-          ))}
+          <GradeDistribution distribution={health.gradeDistribution} />
+        </div>
+
+        {/* Top & Bottom Skills */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          borderTop: `1px solid ${theme.colors.border}`,
+        }}>
+          {/* Top Healthy */}
+          <div style={{
+            padding: '16px',
+            borderRight: `1px solid ${theme.colors.border}`,
+          }}>
+            <div style={{
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.medium,
+              color: theme.colors.success,
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <span>✨</span> Healthiest
+            </div>
+            {health.topHealthy.slice(0, 3).map(item => (
+              <SkillHealthItem key={item.skillId} item={item} />
+            ))}
+          </div>
+
+          {/* Bottom Healthy */}
+          <div style={{ padding: '16px' }}>
+            <div style={{
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.medium,
+              color: theme.colors.error,
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <span>⚠️</span> Needs Attention
+            </div>
+            {health.bottomHealthy.slice(0, 3).map(item => (
+              <SkillHealthItem key={item.skillId} item={item} />
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Conflicts Section */}
+      <ConflictsSection skills={nodes} expanded={showConflicts} />
     </div>
   );
 }
