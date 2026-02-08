@@ -277,7 +277,7 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          COMPACT HEADER (single line, ~44px height)
+          COMPACT HEADER (single line with integrated tabs)
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
         height: isMobile ? '40px' : '44px',
@@ -306,13 +306,6 @@ export default function App() {
           </span>
         </div>
 
-        {/* Separator */}
-        <span style={{ 
-          width: '1px', 
-          height: '16px', 
-          background: theme.colors.border 
-        }} />
-
         {/* Target + Date */}
         <span style={{
           fontSize: theme.fontSize.xs,
@@ -323,59 +316,12 @@ export default function App() {
           {dateStr}
         </span>
 
-        {/* Stats (desktop only) */}
-        {!isMobile && (
-          <>
-            <span style={{ 
-              width: '1px', 
-              height: '16px', 
-              background: theme.colors.border 
-            }} />
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-            }}>
-              <StatBadge 
-                value={`${healthScore}%`}
-                icon="❤️"
-                label="Health"
-                tooltip={`Health Score - How balanced your skills are`}
-                accent 
-              />
-              <StatBadge 
-                value={data.nodes.length} 
-                icon="🛡️"
-                label="Skills"
-                tooltip="Total skills installed"
-              />
-              <StatBadge 
-                value={data.edges.length} 
-                icon="🔗"
-                label="Connections"
-                tooltip="Connections between skills"
-              />
-            </div>
-          </>
-        )}
-
         {/* Spacer */}
         <div style={{ flex: 1 }} />
-      </header>
 
-      {/* ═══════════════════════════════════════════════════════════
-          VIEW MODE TOGGLE BAR - Fixed at top, always visible
-      ═══════════════════════════════════════════════════════════ */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '8px 12px',
-        background: theme.colors.bgSecondary,
-        borderBottom: `1px solid ${theme.colors.border}`,
-        flexShrink: 0,
-      }}>
+        {/* View Mode Toggle (integrated in header) */}
         <ViewToggle mode={viewMode} onChange={setViewMode} />
-      </div>
+      </header>
 
       {/* ═══════════════════════════════════════════════════════════
           MAIN CONTENT AREA - Conditional Layout based on viewMode
