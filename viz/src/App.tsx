@@ -69,7 +69,7 @@ function StatBadge({
 }
 
 // ═══════════════════════════════════════════════════════════
-// View Toggle Component
+// View Toggle Component (for center column)
 // ═══════════════════════════════════════════════════════════
 function ViewToggle({ 
   mode, 
@@ -210,13 +210,6 @@ export default function App() {
     return Math.round((balance * 40 + Math.min(depth / 3, 1) * 30 + 30) * 10) / 10;
   }, [data]);
 
-  const gradeInfo = useMemo(() => {
-    if (healthScore >= 80) return { text: 'Excellent', color: theme.colors.success };
-    if (healthScore >= 65) return { text: 'Good', color: theme.colors.success };
-    if (healthScore >= 50) return { text: 'Average', color: theme.colors.warning };
-    return { text: 'Poor', color: theme.colors.error };
-  }, [healthScore]);
-
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -286,6 +279,8 @@ export default function App() {
     }}>
       {/* ═══════════════════════════════════════════════════════════
           COMPACT HEADER (single line, ~44px height)
+          - No ViewToggle here (moved to center column)
+          - No Full button here (moved to ReportView)
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
         height: isMobile ? '40px' : '44px',
@@ -347,7 +342,7 @@ export default function App() {
                 value={`${healthScore}%`}
                 icon="❤️"
                 label="Health"
-                tooltip={`Health: ${gradeInfo.text} - How balanced your skills are`}
+                tooltip={`Health Score - How balanced your skills are`}
                 accent 
               />
               <StatBadge 
@@ -368,36 +363,10 @@ export default function App() {
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
-
-        {/* View Toggle */}
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
-
-        {/* Full Report Button */}
-        {!isMobile && (
-          <button
-            onClick={() => setShowReport(true)}
-            style={{
-              padding: '8px 16px',
-              background: '#1a1a1a',
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.md,
-              color: theme.colors.textPrimary,
-              fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.semibold,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            📄 Full
-          </button>
-        )}
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA - 3 Column Layout (Desktop + Tablet: 600px+)
+          MAIN CONTENT AREA - 3 Column Layout (always maintained)
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         flex: 1,
@@ -409,180 +378,198 @@ export default function App() {
             : '1fr',
         overflow: 'hidden',
       }}>
-        {viewMode === '3d' ? (
-          <>
-            {/* LEFT COLUMN: Categories */}
-            {!isMobile && (
-              <div style={{
-                background: theme.colors.bgSecondary,
-                borderRight: `1px solid ${theme.colors.border}`,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
-                <CategoryLegend 
-                  clusters={data.clusters}
-                  selectedCategory={selectedCategory}
-                  onSelect={setSelectedCategory}
-                  compact={isTablet}
-                  embedded
-                />
-              </div>
-            )}
-            
-            {/* CENTER COLUMN: 3D Canvas */}
-            <div style={{
-              position: 'relative',
-              overflow: 'hidden',
-              paddingBottom: isMobile ? '56px' : 0,
-            }}>
-              <Canvas
-                camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
-                gl={{ antialias: true, alpha: false }}
-                style={{ background: theme.colors.bgPrimary }}
-                dpr={[1, 2]}
-              >
-                <Suspense fallback={null}>
-                  <ambientLight intensity={0.6} />
-                  <pointLight position={[10, 10, 10]} intensity={0.4} />
-                  
-                  <Stars 
-                    radius={100} 
-                    depth={50} 
-                    count={isMobile ? 1000 : 2000} 
-                    factor={2} 
-                    saturation={0} 
-                    fade 
-                    speed={0.3}
-                  />
-                  
-                  <SkillNodes 
-                    nodes={filteredNodes}
-                    selectedNode={selectedNode}
-                    hoveredNode={hoveredNode}
-                    onSelect={setSelectedNode}
-                    onHover={setHoveredNode}
-                  />
-                  
-                  <ConnectionLines 
-                    edges={filteredEdges}
-                    nodes={data.nodes}
-                    selectedNode={selectedNode}
-                    hoveredNode={hoveredNode}
-                  />
-                  
-                  <OrbitControls 
-                    enablePan={!isMobile}
-                    enableZoom
-                    enableRotate
-                    autoRotate={!selectedNode && !hoveredNode}
-                    autoRotateSpeed={0.2}
-                    maxDistance={isMobile ? 60 : 50}
-                    minDistance={isMobile ? 10 : 5}
-                    dampingFactor={0.05}
-                    enableDamping
-                    target={[center.x, center.y, center.z]}
-                  />
-                </Suspense>
-              </Canvas>
-              
-              {/* Info Panel (overlay) */}
-              <InfoPanel 
-                node={selectedNode || hoveredNode}
-                allNodes={data.nodes}
-                edges={data.edges}
-                metrics={data.metrics}
-                onClose={() => setSelectedNode(null)}
-                mobile={isMobile}
-              />
-              
-              {/* Footer hint */}
-              {!isMobile && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '16px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  display: 'flex',
-                  gap: '24px',
-                  fontSize: theme.fontSize.xs,
-                  color: theme.colors.textMuted,
-                }}>
-                  <span>Drag to rotate</span>
-                  <span>•</span>
-                  <span>Scroll to zoom</span>
-                  <span>•</span>
-                  <span>Click for details</span>
-                </div>
-              )}
-            </div>
-            
-            {/* RIGHT COLUMN: Recommendations (Desktop + Tablet) */}
-            {(isDesktop || isTablet) && (
-              <div style={{
-                background: theme.colors.bgSecondary,
-                borderLeft: `1px solid ${theme.colors.border}`,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
-                <RecommendationsPanel embedded />
-              </div>
-            )}
-            
-            {/* Mobile Panels */}
-            {isMobile && mobilePanel === 'categories' && (
-              <div style={{
-                position: 'fixed',
-                bottom: '56px',
-                left: 0,
-                right: 0,
-                background: theme.colors.bgSecondary,
-                borderTop: `1px solid ${theme.colors.border}`,
-                maxHeight: '50vh',
-                overflowY: 'auto',
-                zIndex: 150,
-              }}>
-                <CategoryLegend 
-                  clusters={data.clusters}
-                  selectedCategory={selectedCategory}
-                  onSelect={(cat) => {
-                    setSelectedCategory(cat);
-                    setMobilePanel('none');
-                  }}
-                  mobile
-                />
-              </div>
-            )}
-            
-            {isMobile && mobilePanel === 'recommendations' && (
-              <div style={{
-                position: 'fixed',
-                bottom: '56px',
-                left: 0,
-                right: 0,
-                background: theme.colors.bgSecondary,
-                borderTop: `1px solid ${theme.colors.border}`,
-                maxHeight: '60vh',
-                overflowY: 'auto',
-                zIndex: 150,
-              }}>
-                <RecommendationsPanel position="mobile" />
-              </div>
-            )}
-            
-            {isMobile && (
-              <MobileNavToggle 
-                activePanel={mobilePanel} 
-                onToggle={setMobilePanel} 
-              />
-            )}
-          </>
-        ) : (
-          /* Report View - full width */
-          <div style={{ gridColumn: '1 / -1', overflow: 'auto' }}>
-            <ReportView data={data} />
+        {/* LEFT COLUMN: Categories (always visible on desktop/tablet) */}
+        {!isMobile && (
+          <div style={{
+            background: theme.colors.bgSecondary,
+            borderRight: `1px solid ${theme.colors.border}`,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <CategoryLegend 
+              clusters={data.clusters}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+              compact={isTablet}
+              embedded
+            />
           </div>
+        )}
+        
+        {/* CENTER COLUMN: ViewToggle + Content (3D or Report) */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingBottom: isMobile ? '56px' : 0,
+        }}>
+          {/* ViewToggle bar above content */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '8px 12px',
+            background: theme.colors.bgSecondary,
+            borderBottom: `1px solid ${theme.colors.border}`,
+            flexShrink: 0,
+          }}>
+            <ViewToggle mode={viewMode} onChange={setViewMode} />
+          </div>
+
+          {/* Content area */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            {viewMode === '3d' ? (
+              <>
+                <Canvas
+                  camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
+                  gl={{ antialias: true, alpha: false }}
+                  style={{ background: theme.colors.bgPrimary }}
+                  dpr={[1, 2]}
+                >
+                  <Suspense fallback={null}>
+                    <ambientLight intensity={0.6} />
+                    <pointLight position={[10, 10, 10]} intensity={0.4} />
+                    
+                    <Stars 
+                      radius={100} 
+                      depth={50} 
+                      count={isMobile ? 1000 : 2000} 
+                      factor={2} 
+                      saturation={0} 
+                      fade 
+                      speed={0.3}
+                    />
+                    
+                    <SkillNodes 
+                      nodes={filteredNodes}
+                      selectedNode={selectedNode}
+                      hoveredNode={hoveredNode}
+                      onSelect={setSelectedNode}
+                      onHover={setHoveredNode}
+                    />
+                    
+                    <ConnectionLines 
+                      edges={filteredEdges}
+                      nodes={data.nodes}
+                      selectedNode={selectedNode}
+                      hoveredNode={hoveredNode}
+                    />
+                    
+                    <OrbitControls 
+                      enablePan={!isMobile}
+                      enableZoom
+                      enableRotate
+                      autoRotate={!selectedNode && !hoveredNode}
+                      autoRotateSpeed={0.2}
+                      maxDistance={isMobile ? 60 : 50}
+                      minDistance={isMobile ? 10 : 5}
+                      dampingFactor={0.05}
+                      enableDamping
+                      target={[center.x, center.y, center.z]}
+                    />
+                  </Suspense>
+                </Canvas>
+                
+                {/* Info Panel (overlay) */}
+                <InfoPanel 
+                  node={selectedNode || hoveredNode}
+                  allNodes={data.nodes}
+                  edges={data.edges}
+                  metrics={data.metrics}
+                  onClose={() => setSelectedNode(null)}
+                  mobile={isMobile}
+                />
+                
+                {/* Footer hint */}
+                {!isMobile && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '16px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: '24px',
+                    fontSize: theme.fontSize.xs,
+                    color: theme.colors.textMuted,
+                  }}>
+                    <span>Drag to rotate</span>
+                    <span>•</span>
+                    <span>Scroll to zoom</span>
+                    <span>•</span>
+                    <span>Click for details</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Report View - embedded in center column */
+              <div style={{ height: '100%', overflow: 'auto' }}>
+                <ReportView data={data} onOpenFullReport={() => setShowReport(true)} />
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* RIGHT COLUMN: Recommendations (always visible on desktop/tablet) */}
+        {(isDesktop || isTablet) && (
+          <div style={{
+            background: theme.colors.bgSecondary,
+            borderLeft: `1px solid ${theme.colors.border}`,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <RecommendationsPanel embedded />
+          </div>
+        )}
+        
+        {/* Mobile Panels */}
+        {isMobile && mobilePanel === 'categories' && (
+          <div style={{
+            position: 'fixed',
+            bottom: '56px',
+            left: 0,
+            right: 0,
+            background: theme.colors.bgSecondary,
+            borderTop: `1px solid ${theme.colors.border}`,
+            maxHeight: '50vh',
+            overflowY: 'auto',
+            zIndex: 150,
+          }}>
+            <CategoryLegend 
+              clusters={data.clusters}
+              selectedCategory={selectedCategory}
+              onSelect={(cat) => {
+                setSelectedCategory(cat);
+                setMobilePanel('none');
+              }}
+              mobile
+            />
+          </div>
+        )}
+        
+        {isMobile && mobilePanel === 'recommendations' && (
+          <div style={{
+            position: 'fixed',
+            bottom: '56px',
+            left: 0,
+            right: 0,
+            background: theme.colors.bgSecondary,
+            borderTop: `1px solid ${theme.colors.border}`,
+            maxHeight: '60vh',
+            overflowY: 'auto',
+            zIndex: 150,
+          }}>
+            <RecommendationsPanel position="mobile" />
+          </div>
+        )}
+        
+        {isMobile && (
+          <MobileNavToggle 
+            activePanel={mobilePanel} 
+            onToggle={setMobilePanel} 
+          />
         )}
       </div>
       

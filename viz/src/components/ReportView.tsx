@@ -4,6 +4,7 @@ import type { VizData, SkillNode } from '../types';
 
 interface ReportViewProps {
   data: VizData;
+  onOpenFullReport?: () => void;
 }
 
 type SortKey = 'name' | 'category' | 'tokens' | 'connections';
@@ -174,7 +175,7 @@ function capitalize(s: string): string {
 // ═══════════════════════════════════════════════════════════
 // Report View Component
 // ═══════════════════════════════════════════════════════════
-export default function ReportView({ data }: ReportViewProps) {
+export default function ReportView({ data, onOpenFullReport }: ReportViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('tokens');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
@@ -275,6 +276,39 @@ export default function ReportView({ data }: ReportViewProps) {
       background: theme.colors.bgPrimary,
       overflow: 'auto',
     }}>
+      {/* ═══════════════════════════════════════════════════════════
+          TOP BAR - Full Report Button
+      ═══════════════════════════════════════════════════════════ */}
+      {onOpenFullReport && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '12px 24px',
+          borderBottom: `1px solid ${theme.colors.border}`,
+          background: theme.colors.bgSecondary,
+        }}>
+          <button
+            onClick={onOpenFullReport}
+            style={{
+              padding: '8px 16px',
+              background: theme.colors.accent,
+              border: 'none',
+              borderRadius: theme.radius.md,
+              color: '#fff',
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.semibold,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            📄 Full Report
+          </button>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════
           ANALYSIS SUMMARY
       ═══════════════════════════════════════════════════════════ */}
