@@ -20,55 +20,6 @@ import { generateDemoData } from './data/demoData';
 type ViewMode = '3d' | 'report';
 
 // ═══════════════════════════════════════════════════════════
-// Compact Stat Badge (inline, minimal)
-// ═══════════════════════════════════════════════════════════
-function StatBadge({ 
-  value, 
-  icon,
-  label,
-  tooltip,
-  accent = false,
-}: { 
-  value: string | number; 
-  icon: string;
-  label: string;
-  tooltip: string;
-  accent?: boolean;
-}) {
-  return (
-    <div 
-      title={tooltip}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '5px',
-        padding: '4px 10px',
-        background: theme.colors.bgTertiary,
-        borderRadius: theme.radius.sm,
-        cursor: 'help',
-      }}
-    >
-      <span style={{ fontSize: '12px' }}>{icon}</span>
-      <span style={{
-        fontSize: theme.fontSize.sm,
-        fontWeight: theme.fontWeight.semibold,
-        color: accent ? theme.colors.accent : theme.colors.textPrimary,
-        fontFamily: theme.fonts.mono,
-      }}>
-        {value}
-      </span>
-      <span style={{
-        fontSize: theme.fontSize.xs,
-        color: theme.colors.textMuted,
-        marginLeft: '2px',
-      }}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
 // View Toggle Component (for center column)
 // ═══════════════════════════════════════════════════════════
 function ViewToggle({ 
