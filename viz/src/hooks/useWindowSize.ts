@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 export interface WindowSize {
   width: number;
   height: number;
-  isMobile: boolean;    // < 768px
-  isTablet: boolean;    // 768-1199px
+  isMobile: boolean;    // < 600px
+  isTablet: boolean;    // 600-1199px
   isDesktop: boolean;   // 1200px+
 }
 
@@ -25,8 +25,8 @@ export function useWindowSize(): WindowSize {
       setSize({
         width,
         height,
-        isMobile: width < 768,
-        isTablet: width >= 768 && width < 1200,
+        isMobile: width < 600,
+        isTablet: width >= 600 && width < 1200,
         isDesktop: width >= 1200,
       });
     };
