@@ -223,7 +223,19 @@ export default function App() {
         const response = await fetch('/viz-data.json');
         if (response.ok) {
           const json = await response.json();
-          setData(json);
+          // Normalize colors to use theme.categoryColors as single source of truth
+          const normalizedData: VizData = {
+            ...json,
+            nodes: json.nodes.map((node: SkillNode) => ({
+              ...node,
+              color: theme.categoryColors[node.category] || node.color,
+            })),
+            clusters: json.clusters.map((cluster: { id: string; name: string; category: string; skills: string[]; centroid: { x: number; y: number; z: number }; density: number; color: string }) => ({
+              ...cluster,
+              color: theme.categoryColors[cluster.category] || cluster.color,
+            })),
+          };
+          setData(normalizedData);
         } else {
           throw new Error('No data file');
         }
