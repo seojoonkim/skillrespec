@@ -1,15 +1,8 @@
 import type { VizData, SkillNode, SkillEdge, SkillCluster, VizMetrics } from '../types';
+import { theme } from '../styles/theme';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  productivity: '#00ffff',
-  development: '#ff00ff',
-  media: '#ffff00',
-  communication: '#00ff00',
-  design: '#ff6b00',
-  marketing: '#ff0066',
-  security: '#ff0000',
-  utility: '#6666ff',
-};
+// Use theme.categoryColors as single source of truth
+const CATEGORY_COLORS = theme.categoryColors;
 
 // Sample skill data based on the actual catalog
 const DEMO_SKILLS = [
