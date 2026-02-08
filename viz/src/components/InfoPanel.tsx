@@ -42,16 +42,7 @@ function explainSimilarity(node1: SkillNode, node2: SkillNode, weight: number): 
 
 function StatItem({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div>
-      <div style={{
-        fontSize: theme.fontSize.xs,
-        color: theme.colors.textMuted,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        marginBottom: '4px',
-      }}>
-        {label}
-      </div>
+    <div style={{ textAlign: 'center' }}>
       <div style={{
         fontSize: theme.fontSize.lg,
         fontWeight: theme.fontWeight.semibold,
@@ -60,14 +51,24 @@ function StatItem({ label, value, color }: { label: string; value: string; color
       }}>
         {value}
       </div>
+      <div style={{
+        fontSize: theme.fontSize.xs,
+        color: theme.colors.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        marginTop: '2px',
+      }}>
+        {label}
+      </div>
     </div>
   );
 }
 
+// Bottom fixed panel - no overlay, no modal
 export default function InfoPanel({ node, allNodes, edges, onClose, mobile = false }: InfoPanelProps) {
-  if (!node) return null;
-
   const { connectedNodes, overlapScore } = useMemo(() => {
+    if (!node) return { connectedNodes: [], overlapScore: 0 };
+    
     const connectedEdges = edges.filter(e => e.source === node.id || e.target === node.id);
     
     const connected = connectedEdges.map(e => {
@@ -88,282 +89,182 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
     };
   }, [node, allNodes, edges]);
 
-  const panelStyle: React.CSSProperties = {
-    background: theme.colors.bgSecondary,
-    border: `1px solid ${theme.colors.border}`,
-    fontFamily: theme.fonts.sans,
-    overflow: 'hidden',
-    zIndex: 1000,
-    pointerEvents: 'auto',
-  };
-
-  if (mobile) {
+  // Empty state - just show placeholder text
+  if (!node) {
     return (
-      <>
-        {/* Backdrop */}
-        <div 
-          onClick={onClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            zIndex: 999,
-          }}
-        />
-        
-        {/* Modal */}
-        <div style={{
-          ...panelStyle,
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'calc(100% - 32px)',
-          maxWidth: '360px',
-          maxHeight: 'calc(100vh - 120px)',
-          borderRadius: theme.radius.lg,
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {/* Header */}
-          <div style={{
-            padding: '16px',
-            borderBottom: `1px solid ${theme.colors.border}`,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-          }}>
-            <div>
-              <h2 style={{
-                fontSize: theme.fontSize.lg,
-                fontWeight: theme.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                margin: 0,
-              }}>
-                {node.name}
-              </h2>
-              <div style={{
-                fontSize: theme.fontSize.xs,
-                color: theme.colors.textMuted,
-                marginTop: '4px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}>
-                {node.category}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: theme.colors.textMuted,
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '4px',
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Content */}
-          <div style={{ padding: '16px', flex: 1, overflowY: 'auto' }}>
-            {/* Stats */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '20px',
-            }}>
-              <StatItem label="Tokens" value={`~${node.tokens.toLocaleString()}`} color={theme.colors.accent} />
-              <StatItem label="Overlap" value={`${overlapScore}%`} color={overlapScore > 50 ? theme.colors.warning : theme.colors.textPrimary} />
-              <StatItem label="Links" value={String(connectedNodes.length)} />
-            </div>
-
-            {/* Similar Skills */}
-            {connectedNodes.length > 0 && (
-              <>
-                <h3 style={{
-                  fontSize: theme.fontSize.xs,
-                  color: theme.colors.textMuted,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  marginBottom: '12px',
-                  fontWeight: theme.fontWeight.medium,
-                }}>
-                  Similar Skills
-                </h3>
-                {connectedNodes.slice(0, 3).map(({ node: n, weight }) => (
-                  <div
-                    key={n.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 0',
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                    }}
-                  >
-                    <div>
-                      <div style={{
-                        fontSize: theme.fontSize.sm,
-                        color: theme.colors.textPrimary,
-                        fontWeight: theme.fontWeight.medium,
-                      }}>
-                        {n.name}
-                      </div>
-                      <div style={{
-                        fontSize: theme.fontSize.xs,
-                        color: theme.colors.textMuted,
-                        marginTop: '2px',
-                      }}>
-                        {explainSimilarity(node, n, weight)}
-                      </div>
-                    </div>
-                    <span style={{
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.semibold,
-                      color: weight > 0.7 ? theme.colors.warning : theme.colors.textSecondary,
-                      fontFamily: theme.fonts.mono,
-                    }}>
-                      {Math.round(weight * 100)}%
-                    </span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-      </>
+      <div style={{
+        height: mobile ? '100px' : '130px',
+        background: theme.colors.bgSecondary,
+        borderTop: `1px solid ${theme.colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: theme.colors.textMuted,
+        fontSize: theme.fontSize.sm,
+        fontFamily: theme.fonts.sans,
+      }}>
+        <span style={{ opacity: 0.6 }}>Click a skill node to view details</span>
+      </div>
     );
   }
 
-  // Desktop
+  // Active state - show skill info
   return (
     <div style={{
-      ...panelStyle,
-      position: 'absolute',
-      top: '80px',
-      right: '340px',
-      width: '320px',
-      maxHeight: 'calc(100vh - 160px)',
-      borderRadius: theme.radius.lg,
+      height: mobile ? '100px' : '130px',
+      background: theme.colors.bgSecondary,
+      borderTop: `1px solid ${theme.colors.border}`,
       display: 'flex',
-      flexDirection: 'column',
+      fontFamily: theme.fonts.sans,
+      overflow: 'hidden',
     }}>
-      {/* Header */}
+      {/* Left: Skill Name & Category */}
       <div style={{
-        padding: '20px',
-        borderBottom: `1px solid ${theme.colors.border}`,
+        width: mobile ? '140px' : '200px',
+        padding: mobile ? '12px 16px' : '16px 20px',
+        borderRight: `1px solid ${theme.colors.border}`,
         display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        flexShrink: 0,
       }}>
-        <div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <div
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              background: node.color || theme.categoryColors[node.category] || theme.colors.accent,
+              flexShrink: 0,
+            }}
+          />
           <h2 style={{
-            fontSize: theme.fontSize.lg,
+            fontSize: mobile ? theme.fontSize.sm : theme.fontSize.base,
             fontWeight: theme.fontWeight.semibold,
             color: theme.colors.textPrimary,
             margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}>
             {node.name}
           </h2>
+        </div>
+        <div style={{
+          fontSize: theme.fontSize.xs,
+          color: theme.colors.textMuted,
+          marginTop: '6px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}>
+          {node.category}
+        </div>
+      </div>
+
+      {/* Center: Stats */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: mobile ? '24px' : '48px',
+        padding: '16px',
+      }}>
+        <StatItem 
+          label="Tokens" 
+          value={`~${node.tokens.toLocaleString()}`} 
+          color={theme.colors.accent} 
+        />
+        <StatItem 
+          label="Overlap" 
+          value={`${overlapScore}%`} 
+          color={overlapScore > 50 ? theme.colors.warning : theme.colors.textPrimary} 
+        />
+        <StatItem 
+          label="Links" 
+          value={String(connectedNodes.length)} 
+        />
+      </div>
+
+      {/* Right: Top Similar Skills */}
+      {!mobile && connectedNodes.length > 0 && (
+        <div style={{
+          width: '280px',
+          padding: '12px 16px',
+          borderLeft: `1px solid ${theme.colors.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
           <div style={{
             fontSize: theme.fontSize.xs,
             color: theme.colors.textMuted,
-            marginTop: '4px',
             textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            letterSpacing: '0.1em',
+            marginBottom: '8px',
+            fontWeight: theme.fontWeight.medium,
           }}>
-            {node.category}
+            Similar Skills
           </div>
-        </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: theme.colors.textMuted,
-            fontSize: '20px',
-            cursor: 'pointer',
-            padding: '4px',
-            transition: 'color 0.15s ease',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.textPrimary}
-          onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textMuted}
-        >
-          ×
-        </button>
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
-        {/* Stats */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-          marginBottom: '24px',
-        }}>
-          <StatItem label="Tokens" value={`~${node.tokens.toLocaleString()}`} color={theme.colors.accent} />
-          <StatItem label="Overlap" value={`${overlapScore}%`} color={overlapScore > 50 ? theme.colors.warning : theme.colors.textPrimary} />
-          <StatItem label="Links" value={String(connectedNodes.length)} />
-        </div>
-
-        {/* Similar Skills */}
-        {connectedNodes.length > 0 && (
-          <>
-            <h3 style={{
-              fontSize: theme.fontSize.xs,
-              color: theme.colors.textMuted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              marginBottom: '12px',
-              fontWeight: theme.fontWeight.medium,
-            }}>
-              Similar Skills
-            </h3>
-            {connectedNodes.slice(0, 4).map(({ node: n, weight }) => (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+          }}>
+            {connectedNodes.slice(0, 3).map(({ node: n, weight }) => (
               <div
                 key={n.id}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 0',
-                  borderBottom: `1px solid ${theme.colors.border}`,
+                  gap: '6px',
+                  padding: '4px 8px',
+                  background: theme.colors.bgTertiary,
+                  borderRadius: theme.radius.sm,
+                  fontSize: theme.fontSize.xs,
                 }}
               >
-                <div>
-                  <div style={{
-                    fontSize: theme.fontSize.sm,
-                    color: theme.colors.textPrimary,
-                    fontWeight: theme.fontWeight.medium,
-                  }}>
-                    {n.name}
-                  </div>
-                  <div style={{
-                    fontSize: theme.fontSize.xs,
-                    color: theme.colors.textMuted,
-                    marginTop: '2px',
-                  }}>
-                    {explainSimilarity(node, n, weight)}
-                  </div>
-                </div>
+                <span style={{ color: theme.colors.textSecondary }}>
+                  {n.name}
+                </span>
                 <span style={{
-                  fontSize: theme.fontSize.sm,
                   fontWeight: theme.fontWeight.semibold,
-                  color: weight > 0.7 ? theme.colors.warning : theme.colors.textSecondary,
+                  color: weight > 0.7 ? theme.colors.warning : theme.colors.textMuted,
                   fontFamily: theme.fonts.mono,
                 }}>
                   {Math.round(weight * 100)}%
                 </span>
               </div>
             ))}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '12px',
+          background: 'transparent',
+          border: 'none',
+          color: theme.colors.textMuted,
+          fontSize: '18px',
+          cursor: 'pointer',
+          padding: '4px 8px',
+          transition: 'color 0.15s ease',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.textPrimary}
+        onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.textMuted}
+      >
+        ×
+      </button>
     </div>
   );
 }

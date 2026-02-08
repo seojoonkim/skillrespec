@@ -86,7 +86,7 @@ export interface Translations {
     recommend: string;
   };
   viewMode: {
-    threeD: string;
+    graph: string;
     report: string;
   };
   reportView: {
@@ -184,7 +184,7 @@ export const translations: Record<Language, Translations> = {
       recommend: '추천',
     },
     viewMode: {
-      threeD: '3D 뷰',
+      graph: '그래프',
       report: '리포트',
     },
     reportView: {
@@ -280,7 +280,7 @@ export const translations: Record<Language, Translations> = {
       recommend: 'Recommend',
     },
     viewMode: {
-      threeD: '3D View',
+      graph: 'Graph',
       report: 'Report',
     },
     reportView: {
@@ -376,7 +376,7 @@ export const translations: Record<Language, Translations> = {
       recommend: 'おすすめ',
     },
     viewMode: {
-      threeD: '3Dビュー',
+      graph: 'グラフ',
       report: 'レポート',
     },
     reportView: {
@@ -472,7 +472,7 @@ export const translations: Record<Language, Translations> = {
       recommend: '推荐',
     },
     viewMode: {
-      threeD: '3D视图',
+      graph: '图表',
       report: '报告',
     },
     reportView: {

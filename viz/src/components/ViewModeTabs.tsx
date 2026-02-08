@@ -21,7 +21,7 @@ export default function ViewModeTabs({
   const { t } = useTranslation();
 
   const tabs: { mode: ViewMode; icon: string; label: string }[] = [
-    { mode: '3d', icon: '🌐', label: t.viewMode.threeD },
+    { mode: '3d', icon: '🌐', label: t.viewMode.graph },
     { mode: 'report', icon: '📋', label: t.viewMode.report },
   ];
 

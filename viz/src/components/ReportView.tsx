@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { theme } from '../styles/theme';
-import DiagnosticReportInline from './DiagnosticReportInline';
 import type { VizData, SkillNode } from '../types';
 
 interface ReportViewProps {
@@ -8,236 +7,818 @@ interface ReportViewProps {
   healthScore?: number;
 }
 
-type SortKey = 'name' | 'category' | 'tokens' | 'connections';
+type SortKey = 'name' | 'category' | 'tokens' | 'connections' | 'usage' | 'recommendation';
 type SortOrder = 'asc' | 'desc';
+type UsageLevel = 'high' | 'medium' | 'low' | 'unused';
+type RecommendationType = 'keep' | 'update' | 'remove' | 'essential';
 
 // ═══════════════════════════════════════════════════════════
-// Analysis Logic
+// Helper Functions
 // ═══════════════════════════════════════════════════════════
-interface AnalysisResult {
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  dominantCategory: { name: string; percentage: number } | null;
-  missingCategories: string[];
-}
-
-interface ActionItem {
-  type: 'install' | 'remove' | 'update';
-  skill: string;
-  reason: string;
-}
-
-function analyzeSkillset(data: VizData): AnalysisResult {
-  const { nodes, clusters, metrics } = data;
-  
-  // Calculate category distribution
-  const categoryCount: Record<string, number> = {};
-  nodes.forEach(n => {
-    categoryCount[n.category] = (categoryCount[n.category] || 0) + 1;
-  });
-  
-  const totalSkills = nodes.length;
-  const categoryPercentages = Object.entries(categoryCount)
-    .map(([cat, count]) => ({ name: cat, percentage: Math.round((count / totalSkills) * 100) }))
-    .sort((a, b) => b.percentage - a.percentage);
-  
-  const dominant = categoryPercentages[0];
-  
-  // Find missing/weak categories
-  const allCategories = ['productivity', 'development', 'media', 'communication', 'design', 'marketing', 'security', 'utility'];
-  const presentCategories = new Set(Object.keys(categoryCount));
-  const missingCategories = allCategories.filter(cat => !presentCategories.has(cat));
-  const weakCategories = categoryPercentages.filter(c => c.percentage < 5).map(c => c.name);
-  
-  // Build summary
-  let summary = '';
-  if (dominant && dominant.percentage > 40) {
-    summary = `Your skill set is heavily focused on ${capitalize(dominant.name)} (${dominant.percentage}%), which may limit versatility. Consider diversifying into ${missingCategories.length > 0 ? missingCategories.slice(0, 2).map(capitalize).join(' and ') : 'other areas'}.`;
-  } else if (categoryPercentages.length >= 5 && categoryPercentages[4]?.percentage >= 10) {
-    summary = 'Your skill set is well-balanced across multiple categories. This provides good versatility for various tasks.';
-  } else {
-    summary = `Your skill set covers ${categoryPercentages.length} categories. Consider expanding into ${missingCategories.slice(0, 2).map(capitalize).join(' and ')} for better coverage.`;
-  }
-  
-  // Build strengths
-  const strengths: string[] = [];
-  if (dominant && dominant.percentage >= 20) {
-    strengths.push(`Strong ${capitalize(dominant.name)} foundation`);
-  }
-  if (presentCategories.has('security')) {
-    const secSkills = nodes.filter(n => n.category === 'security');
-    if (secSkills.length > 0) {
-      strengths.push(`Security covered with ${secSkills[0].name}`);
-    }
-  }
-  if (presentCategories.has('development')) {
-    strengths.push('Development capabilities present');
-  }
-  if (metrics.uniquenessIndex > 0.7) {
-    strengths.push('Good skill diversity (low redundancy)');
-  }
-  if (categoryPercentages.length >= 6) {
-    strengths.push('Broad category coverage');
-  }
-  
-  // Build improvements
-  const improvements: string[] = [];
-  if (missingCategories.includes('development')) {
-    improvements.push('No Development skills detected');
-  }
-  if (missingCategories.includes('security')) {
-    improvements.push('No Security skills - consider adding protection');
-  }
-  if (!presentCategories.has('productivity') || categoryCount.productivity < 2) {
-    improvements.push('Limited productivity tools');
-  }
-  if (weakCategories.length > 2) {
-    improvements.push(`Weak coverage in ${weakCategories.slice(0, 2).map(capitalize).join(', ')}`);
-  }
-  if (dominant && dominant.percentage > 50) {
-    improvements.push(`Over-reliance on ${capitalize(dominant.name)} (${dominant.percentage}%)`);
-  }
-  
-  // Ensure at least one item in each
-  if (strengths.length === 0) strengths.push('Foundational skill set in place');
-  if (improvements.length === 0) improvements.push('Consider adding specialized skills');
-  
-  return {
-    summary,
-    strengths: strengths.slice(0, 4),
-    improvements: improvements.slice(0, 4),
-    dominantCategory: dominant || null,
-    missingCategories,
-  };
-}
-
-function generateActions(data: VizData, analysis: AnalysisResult): ActionItem[] {
-  const actions: ActionItem[] = [];
-  const { nodes } = data;
-  
-  // Install recommendations based on missing categories
-  const suggestedInstalls: Record<string, { skill: string; reason: string }> = {
-    development: { skill: 'docker-basics', reason: 'Add DevOps capability' },
-    security: { skill: 'prompt-guard', reason: 'Essential security layer' },
-    productivity: { skill: 'notion-sync', reason: 'Improve task management' },
-  };
-  
-  for (const missing of analysis.missingCategories.slice(0, 2)) {
-    if (suggestedInstalls[missing]) {
-      actions.push({
-        type: 'install',
-        skill: suggestedInstalls[missing].skill,
-        reason: suggestedInstalls[missing].reason,
-      });
-    }
-  }
-  
-  // Find duplicate/similar skills to remove
-  const nameMap = new Map<string, SkillNode[]>();
-  nodes.forEach(n => {
-    const baseName = n.name.toLowerCase().replace(/[-_\s]+(pro|max|v\d+|skill)?$/i, '');
-    if (!nameMap.has(baseName)) nameMap.set(baseName, []);
-    nameMap.get(baseName)!.push(n);
-  });
-  
-  for (const [, duplicates] of nameMap) {
-    if (duplicates.length > 1) {
-      // Recommend removing the larger one (more tokens = more bloat)
-      const sorted = [...duplicates].sort((a, b) => b.tokens - a.tokens);
-      actions.push({
-        type: 'remove',
-        skill: sorted[0].id,
-        reason: `Duplicate of ${sorted[1].name}`,
-      });
-    }
-  }
-  
-  // Find heavy skills that might need updates
-  const heavySkills = nodes.filter(n => n.tokens > 4000).slice(0, 2);
-  for (const skill of heavySkills) {
-    // Simulate version check
-    if (skill.tokens > 5000) {
-      actions.push({
-        type: 'update',
-        skill: skill.id,
-        reason: 'Newer version available with optimizations',
-      });
-    }
-  }
-  
-  return actions.slice(0, 6);
-}
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // ═══════════════════════════════════════════════════════════
-// Report View Component
+// Extended Skill Analysis
 // ═══════════════════════════════════════════════════════════
+
+interface ExtendedSkillInfo {
+  node: SkillNode;
+  usage: UsageLevel;
+  usageScore: number;
+  overlap: { hasOverlap: boolean; overlapWith: string[]; reason: string };
+  recommendation: RecommendationType;
+  recommendationReason: string;
+  tokenEfficiency: number; // connections per 1000 tokens
+  removeReason?: string;
+}
+
+function analyzeSkillUsage(node: SkillNode, allNodes: SkillNode[]): { level: UsageLevel; score: number } {
+  // Simulate usage based on connections and category importance
+  const connectionScore = Math.min(node.connections.length / 5, 1) * 40;
+  const sizeScore = (node.size / 2) * 30;
+  const categoryBonus = ['security', 'development'].includes(node.category) ? 20 : 
+                        ['productivity', 'utility'].includes(node.category) ? 15 : 10;
+  
+  const score = connectionScore + sizeScore + categoryBonus;
+  
+  if (score >= 70) return { level: 'high', score };
+  if (score >= 45) return { level: 'medium', score };
+  if (score >= 20) return { level: 'low', score };
+  return { level: 'unused', score };
+}
+
+function findOverlaps(node: SkillNode, allNodes: SkillNode[], similarities: { skill1: string; skill2: string; similarity: number }[]): { hasOverlap: boolean; overlapWith: string[]; reason: string } {
+  const overlaps: string[] = [];
+  
+  // Check cosine similarities
+  for (const sim of similarities) {
+    if (sim.similarity > 0.7) {
+      if (sim.skill1 === node.id) overlaps.push(sim.skill2);
+      if (sim.skill2 === node.id) overlaps.push(sim.skill1);
+    }
+  }
+  
+  // Check for similar names (e.g., skill-v1 vs skill-v2)
+  const baseName = node.id.toLowerCase().replace(/[-_]?(v\d+|pro|max|skill|enhanced|lite)$/gi, '');
+  for (const other of allNodes) {
+    if (other.id === node.id) continue;
+    const otherBase = other.id.toLowerCase().replace(/[-_]?(v\d+|pro|max|skill|enhanced|lite)$/gi, '');
+    if (baseName === otherBase && !overlaps.includes(other.id)) {
+      overlaps.push(other.id);
+    }
+  }
+  
+  if (overlaps.length === 0) {
+    return { hasOverlap: false, overlapWith: [], reason: '' };
+  }
+  
+  return {
+    hasOverlap: true,
+    overlapWith: overlaps,
+    reason: overlaps.length === 1 
+      ? `Similar to ${overlaps[0]}` 
+      : `Overlaps with ${overlaps.length} skills`,
+  };
+}
+
+function getRecommendation(
+  node: SkillNode, 
+  usage: UsageLevel, 
+  overlap: { hasOverlap: boolean; overlapWith: string[] },
+  allNodes: SkillNode[]
+): { type: RecommendationType; reason: string; removeReason?: string } {
+  // Essential skills
+  const essentialPatterns = ['security', 'guard', 'protect', 'auth'];
+  const isEssential = node.category === 'security' || 
+    essentialPatterns.some(p => node.id.toLowerCase().includes(p));
+  
+  if (isEssential) {
+    return { type: 'essential', reason: 'Core security/protection skill' };
+  }
+  
+  // Remove recommendations
+  if (usage === 'unused' && overlap.hasOverlap) {
+    return { 
+      type: 'remove', 
+      reason: 'Unused and redundant',
+      removeReason: `Duplicate of ${overlap.overlapWith[0]}`,
+    };
+  }
+  
+  if (usage === 'unused' && node.tokens > 3000) {
+    return { 
+      type: 'remove', 
+      reason: 'High token cost, no usage',
+      removeReason: 'Consuming tokens without value',
+    };
+  }
+  
+  if (overlap.hasOverlap && usage === 'low') {
+    // Find if there's a better version
+    const overlapNode = allNodes.find(n => n.id === overlap.overlapWith[0]);
+    if (overlapNode && overlapNode.tokens < node.tokens) {
+      return { 
+        type: 'remove', 
+        reason: 'Lighter alternative exists',
+        removeReason: `${overlapNode.name} is more efficient`,
+      };
+    }
+  }
+  
+  // Update recommendations
+  if (node.tokens > 5000 && usage !== 'high') {
+    return { type: 'update', reason: 'Check for optimized version' };
+  }
+  
+  // Keep
+  return { type: 'keep', reason: usage === 'high' ? 'Actively used' : 'Working as expected' };
+}
+
+function analyzeAllSkills(data: VizData): ExtendedSkillInfo[] {
+  const { nodes, metrics } = data;
+  const similarities = metrics.cosineSimilarities || [];
+  
+  return nodes.map(node => {
+    const { level: usage, score: usageScore } = analyzeSkillUsage(node, nodes);
+    const overlap = findOverlaps(node, nodes, similarities);
+    const rec = getRecommendation(node, usage, overlap, nodes);
+    const tokenEfficiency = node.tokens > 0 ? (node.connections.length / (node.tokens / 1000)) : 0;
+    
+    return {
+      node,
+      usage,
+      usageScore,
+      overlap,
+      recommendation: rec.type,
+      recommendationReason: rec.reason,
+      tokenEfficiency: Math.round(tokenEfficiency * 100) / 100,
+      removeReason: rec.removeReason,
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Health Score Breakdown
+// ═══════════════════════════════════════════════════════════
+
+interface HealthBreakdown {
+  balance: { score: number; label: string; description: string };
+  coverage: { score: number; label: string; description: string };
+  efficiency: { score: number; label: string; description: string };
+  redundancy: { score: number; label: string; description: string };
+  overall: number;
+}
+
+function calculateHealthBreakdown(data: VizData, extendedSkills: ExtendedSkillInfo[]): HealthBreakdown {
+  const { nodes, clusters, metrics } = data;
+  
+  // Balance: How evenly distributed across categories
+  const categoryCount = clusters.length;
+  const idealPerCategory = nodes.length / categoryCount;
+  const variance = clusters.reduce((sum, c) => {
+    const diff = c.skills.length - idealPerCategory;
+    return sum + (diff * diff);
+  }, 0) / categoryCount;
+  const balanceScore = Math.max(0, 100 - (variance * 3));
+  
+  // Coverage: Essential categories present
+  const essentialCategories = ['security', 'productivity', 'utility'];
+  const presentCategories = new Set(nodes.map(n => n.category));
+  const coverageScore = (essentialCategories.filter(c => presentCategories.has(c)).length / essentialCategories.length) * 100;
+  
+  // Efficiency: Token usage vs connections
+  const avgEfficiency = extendedSkills.reduce((sum, s) => sum + s.tokenEfficiency, 0) / extendedSkills.length;
+  const efficiencyScore = Math.min(100, avgEfficiency * 25);
+  
+  // Redundancy: Low overlap is good
+  const overlappingSkills = extendedSkills.filter(s => s.overlap.hasOverlap).length;
+  const redundancyScore = Math.max(0, 100 - (overlappingSkills / nodes.length) * 150);
+  
+  const overall = Math.round((balanceScore * 0.25 + coverageScore * 0.3 + efficiencyScore * 0.25 + redundancyScore * 0.2));
+  
+  return {
+    balance: {
+      score: Math.round(balanceScore),
+      label: 'Category Balance',
+      description: balanceScore >= 70 ? 'Well distributed across categories' : 
+                   balanceScore >= 40 ? 'Some category imbalance' : 'Heavy concentration in few categories',
+    },
+    coverage: {
+      score: Math.round(coverageScore),
+      label: 'Essential Coverage',
+      description: coverageScore >= 80 ? 'All essential categories covered' :
+                   coverageScore >= 50 ? 'Some essential categories missing' : 'Major gaps in essential categories',
+    },
+    efficiency: {
+      score: Math.round(efficiencyScore),
+      label: 'Token Efficiency',
+      description: efficiencyScore >= 70 ? 'Good token-to-value ratio' :
+                   efficiencyScore >= 40 ? 'Room for optimization' : 'High token usage, low connectivity',
+    },
+    redundancy: {
+      score: Math.round(redundancyScore),
+      label: 'Low Redundancy',
+      description: redundancyScore >= 70 ? 'Minimal skill overlap' :
+                   redundancyScore >= 40 ? 'Some redundant skills detected' : 'High skill redundancy',
+    },
+    overall,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Suggested Skills (for missing categories)
+// ═══════════════════════════════════════════════════════════
+
+interface SuggestedSkill {
+  name: string;
+  id: string;
+  category: string;
+  reason: string;
+  estimatedTokens: string;
+}
+
+function getSuggestedSkills(data: VizData): SuggestedSkill[] {
+  const presentCategories = new Set(data.nodes.map(n => n.category));
+  const suggestions: SuggestedSkill[] = [];
+  
+  const skillSuggestions: Record<string, SuggestedSkill[]> = {
+    development: [
+      { name: 'Docker Basics', id: 'docker-basics', category: 'development', reason: 'DevOps foundation', estimatedTokens: '~2.5k' },
+      { name: 'Git Workflow', id: 'git-workflow', category: 'development', reason: 'Version control mastery', estimatedTokens: '~1.8k' },
+    ],
+    security: [
+      { name: 'Prompt Guard', id: 'prompt-guard', category: 'security', reason: 'Essential injection protection', estimatedTokens: '~3.2k' },
+      { name: 'API Security', id: 'api-security', category: 'security', reason: 'Secure API handling', estimatedTokens: '~2.1k' },
+    ],
+    productivity: [
+      { name: 'Task Planner', id: 'task-planner', category: 'productivity', reason: 'Better task management', estimatedTokens: '~1.5k' },
+      { name: 'Time Tracker', id: 'time-tracker', category: 'productivity', reason: 'Productivity insights', estimatedTokens: '~1.2k' },
+    ],
+    design: [
+      { name: 'UI Components', id: 'ui-components', category: 'design', reason: 'Consistent UI patterns', estimatedTokens: '~2.8k' },
+    ],
+    communication: [
+      { name: 'Email Templates', id: 'email-templates', category: 'communication', reason: 'Professional communication', estimatedTokens: '~1.4k' },
+    ],
+  };
+  
+  // Find weak or missing categories
+  const allCategories = ['development', 'security', 'productivity', 'design', 'communication'];
+  for (const cat of allCategories) {
+    if (!presentCategories.has(cat)) {
+      if (skillSuggestions[cat]) {
+        suggestions.push(...skillSuggestions[cat]);
+      }
+    } else {
+      // Check if category is weak (< 2 skills)
+      const catSkillCount = data.nodes.filter(n => n.category === cat).length;
+      if (catSkillCount < 2 && skillSuggestions[cat]) {
+        suggestions.push(skillSuggestions[cat][0]);
+      }
+    }
+  }
+  
+  return suggestions.slice(0, 4);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI Components
+// ═══════════════════════════════════════════════════════════
+
+function HealthScoreRing({ score, size = 120 }: { score: number; size?: number }) {
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score / 100) * circumference;
+  
+  const getColor = (s: number) => {
+    if (s >= 70) return theme.colors.success;
+    if (s >= 50) return theme.colors.warning;
+    return theme.colors.error;
+  };
+  
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={theme.colors.bgTertiary}
+          strokeWidth={strokeWidth}
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={getColor(score)}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - progress}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontSize: '28px',
+          fontWeight: theme.fontWeight.bold,
+          color: getColor(score),
+          fontFamily: theme.fonts.mono,
+        }}>
+          {score}
+        </div>
+        <div style={{
+          fontSize: theme.fontSize.xs,
+          color: theme.colors.textMuted,
+        }}>
+          / 100
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownBar({ label, score, description }: { label: string; score: number; description: string }) {
+  const getColor = (s: number) => {
+    if (s >= 70) return theme.colors.success;
+    if (s >= 50) return theme.colors.warning;
+    return theme.colors.error;
+  };
+  
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '4px',
+      }}>
+        <span style={{
+          fontSize: theme.fontSize.sm,
+          color: theme.colors.textSecondary,
+        }}>
+          {label}
+        </span>
+        <span style={{
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
+          color: getColor(score),
+          fontFamily: theme.fonts.mono,
+        }}>
+          {score}%
+        </span>
+      </div>
+      <div style={{
+        height: '6px',
+        background: theme.colors.bgTertiary,
+        borderRadius: '3px',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          width: `${score}%`,
+          height: '100%',
+          background: getColor(score),
+          borderRadius: '3px',
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+      <div style={{
+        fontSize: theme.fontSize.xs,
+        color: theme.colors.textMuted,
+        marginTop: '2px',
+      }}>
+        {description}
+      </div>
+    </div>
+  );
+}
+
+function CategoryChart({ data }: { data: VizData }) {
+  const categoryStats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    data.nodes.forEach(n => {
+      counts[n.category] = (counts[n.category] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / data.nodes.length) * 100),
+        color: theme.categoryColors[name] || theme.colors.textMuted,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [data]);
+  
+  const maxCount = Math.max(...categoryStats.map(c => c.count));
+  
+  return (
+    <div>
+      {categoryStats.map(cat => (
+        <div key={cat.name} style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '8px',
+        }}>
+          <span style={{
+            width: '90px',
+            fontSize: theme.fontSize.sm,
+            color: theme.colors.textSecondary,
+            textTransform: 'capitalize',
+          }}>
+            {cat.name}
+          </span>
+          <div style={{
+            flex: 1,
+            height: '20px',
+            background: theme.colors.bgTertiary,
+            borderRadius: '4px',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <div style={{
+              width: `${(cat.count / maxCount) * 100}%`,
+              height: '100%',
+              background: `linear-gradient(90deg, ${cat.color}80, ${cat.color})`,
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              paddingLeft: '8px',
+            }}>
+              <span style={{
+                fontSize: theme.fontSize.xs,
+                color: '#fff',
+                fontWeight: theme.fontWeight.medium,
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+              }}>
+                {cat.count}
+              </span>
+            </div>
+          </div>
+          <span style={{
+            width: '40px',
+            fontSize: theme.fontSize.xs,
+            color: theme.colors.textMuted,
+            textAlign: 'right',
+            fontFamily: theme.fonts.mono,
+          }}>
+            {cat.percentage}%
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function QuickActionButton({ 
+  icon, 
+  label, 
+  count, 
+  color, 
+  onClick 
+}: { 
+  icon: string; 
+  label: string; 
+  count: number; 
+  color: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 16px',
+        background: theme.colors.bgTertiary,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.radius.md,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        width: '100%',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = theme.colors.bgHover;
+        e.currentTarget.style.borderColor = color;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = theme.colors.bgTertiary;
+        e.currentTarget.style.borderColor = theme.colors.border;
+      }}
+    >
+      <span style={{ fontSize: '18px' }}>{icon}</span>
+      <div style={{ flex: 1, textAlign: 'left' }}>
+        <div style={{
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.medium,
+          color: theme.colors.textPrimary,
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontSize: theme.fontSize.xs,
+          color: theme.colors.textMuted,
+        }}>
+          {count} {count === 1 ? 'skill' : 'skills'}
+        </div>
+      </div>
+      <div style={{
+        width: '28px',
+        height: '28px',
+        borderRadius: '50%',
+        background: `${color}20`,
+        color: color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: theme.fontSize.sm,
+        fontWeight: theme.fontWeight.bold,
+        fontFamily: theme.fonts.mono,
+      }}>
+        {count}
+      </div>
+    </button>
+  );
+}
+
+function UsageBadge({ level }: { level: UsageLevel }) {
+  const config = {
+    high: { label: 'High', color: theme.colors.success, icon: '🔥' },
+    medium: { label: 'Medium', color: theme.colors.info, icon: '📊' },
+    low: { label: 'Low', color: theme.colors.warning, icon: '📉' },
+    unused: { label: 'Unused', color: theme.colors.error, icon: '💤' },
+  };
+  
+  const { label, color, icon } = config[level];
+  
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '2px 8px',
+      fontSize: theme.fontSize.xs,
+      color: color,
+      background: `${color}15`,
+      borderRadius: theme.radius.sm,
+    }}>
+      <span>{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+function RecommendationBadge({ type, removeReason }: { type: RecommendationType; removeReason?: string }) {
+  const config = {
+    keep: { label: 'Keep', color: theme.colors.success, icon: '✓' },
+    update: { label: 'Update', color: theme.colors.warning, icon: '🔄' },
+    remove: { label: 'Remove', color: theme.colors.error, icon: '🗑️' },
+    essential: { label: 'Essential', color: theme.colors.accent, icon: '⭐' },
+  };
+  
+  const { label, color, icon } = config[type];
+  
+  return (
+    <span
+      title={removeReason || ''}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 8px',
+        fontSize: theme.fontSize.xs,
+        color: type === 'remove' ? '#fff' : color,
+        background: type === 'remove' ? theme.colors.error : `${color}15`,
+        borderRadius: theme.radius.sm,
+        cursor: removeReason ? 'help' : 'default',
+        fontWeight: type === 'remove' ? theme.fontWeight.semibold : theme.fontWeight.normal,
+      }}
+    >
+      <span>{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+function ExpandedSkillDetails({ skill }: { skill: ExtendedSkillInfo }) {
+  return (
+    <tr>
+      <td colSpan={7} style={{
+        padding: '0',
+        background: theme.colors.bgTertiary,
+      }}>
+        <div style={{
+          padding: '16px 24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '16px',
+        }}>
+          {/* Token Efficiency */}
+          <div style={{
+            padding: '12px',
+            background: theme.colors.bgSecondary,
+            borderRadius: theme.radius.md,
+          }}>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}>
+              Token Efficiency
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.lg,
+              fontWeight: theme.fontWeight.semibold,
+              color: skill.tokenEfficiency > 1 ? theme.colors.success : theme.colors.warning,
+              fontFamily: theme.fonts.mono,
+            }}>
+              {skill.tokenEfficiency} <span style={{ fontSize: theme.fontSize.xs, color: theme.colors.textMuted }}>conn/1k tokens</span>
+            </div>
+          </div>
+          
+          {/* Usage Score */}
+          <div style={{
+            padding: '12px',
+            background: theme.colors.bgSecondary,
+            borderRadius: theme.radius.md,
+          }}>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}>
+              Usage Score
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.lg,
+              fontWeight: theme.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              fontFamily: theme.fonts.mono,
+            }}>
+              {Math.round(skill.usageScore)} <span style={{ fontSize: theme.fontSize.xs, color: theme.colors.textMuted }}>/ 100</span>
+            </div>
+          </div>
+          
+          {/* Connections */}
+          <div style={{
+            padding: '12px',
+            background: theme.colors.bgSecondary,
+            borderRadius: theme.radius.md,
+          }}>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}>
+              Connected To
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.sm,
+              color: theme.colors.textSecondary,
+            }}>
+              {skill.node.connections.length > 0 
+                ? skill.node.connections.slice(0, 3).join(', ') + (skill.node.connections.length > 3 ? ` +${skill.node.connections.length - 3}` : '')
+                : 'No connections'}
+            </div>
+          </div>
+          
+          {/* Recommendation Reason */}
+          <div style={{
+            padding: '12px',
+            background: theme.colors.bgSecondary,
+            borderRadius: theme.radius.md,
+          }}>
+            <div style={{
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}>
+              Recommendation
+            </div>
+            <div style={{
+              fontSize: theme.fontSize.sm,
+              color: theme.colors.textSecondary,
+            }}>
+              {skill.recommendationReason}
+              {skill.removeReason && (
+                <span style={{ color: theme.colors.error, display: 'block', marginTop: '4px' }}>
+                  ⚠️ {skill.removeReason}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main Report View Component
+// ═══════════════════════════════════════════════════════════
+
 export default function ReportView({ data, healthScore = 60 }: ReportViewProps) {
-  const [sortKey, setSortKey] = useState<SortKey>('tokens');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortKey, setSortKey] = useState<SortKey>('recommendation');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
+  const [filterRecommendation, setFilterRecommendation] = useState<RecommendationType | null>(null);
+
+  // Analysis
+  const extendedSkills = useMemo(() => analyzeAllSkills(data), [data]);
+  const healthBreakdown = useMemo(() => calculateHealthBreakdown(data, extendedSkills), [data, extendedSkills]);
+  const suggestedSkills = useMemo(() => getSuggestedSkills(data), [data]);
+  
+  // Stats
+  const removeCount = extendedSkills.filter(s => s.recommendation === 'remove').length;
+  const updateCount = extendedSkills.filter(s => s.recommendation === 'update').length;
+  const overlappingCount = extendedSkills.filter(s => s.overlap.hasOverlap).length;
+  const unusedCount = extendedSkills.filter(s => s.usage === 'unused').length;
 
   const categories = useMemo(() => {
     const cats = [...new Set(data.nodes.map(n => n.category))];
     return cats.sort();
   }, [data.nodes]);
 
-  const sortedNodes = useMemo(() => {
-    let nodes = [...data.nodes];
+  const sortedSkills = useMemo(() => {
+    let skills = [...extendedSkills];
 
     if (filterCategory) {
-      nodes = nodes.filter(n => n.category === filterCategory);
+      skills = skills.filter(s => s.node.category === filterCategory);
+    }
+    
+    if (filterRecommendation) {
+      skills = skills.filter(s => s.recommendation === filterRecommendation);
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      nodes = nodes.filter(n => 
-        n.name.toLowerCase().includes(query) ||
-        n.id.toLowerCase().includes(query)
+      skills = skills.filter(s => 
+        s.node.name.toLowerCase().includes(query) ||
+        s.node.id.toLowerCase().includes(query)
       );
     }
 
-    nodes.sort((a, b) => {
+    skills.sort((a, b) => {
       let comparison = 0;
       switch (sortKey) {
         case 'name':
-          comparison = a.name.localeCompare(b.name);
+          comparison = a.node.name.localeCompare(b.node.name);
           break;
         case 'category':
-          comparison = a.category.localeCompare(b.category);
+          comparison = a.node.category.localeCompare(b.node.category);
           break;
         case 'tokens':
-          comparison = a.tokens - b.tokens;
+          comparison = a.node.tokens - b.node.tokens;
           break;
         case 'connections':
-          comparison = a.connections.length - b.connections.length;
+          comparison = a.node.connections.length - b.node.connections.length;
+          break;
+        case 'usage':
+          const usageOrder = { high: 0, medium: 1, low: 2, unused: 3 };
+          comparison = usageOrder[a.usage] - usageOrder[b.usage];
+          break;
+        case 'recommendation':
+          const recOrder = { remove: 0, update: 1, keep: 2, essential: 3 };
+          comparison = recOrder[a.recommendation] - recOrder[b.recommendation];
           break;
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    return nodes;
-  }, [data.nodes, sortKey, sortOrder, filterCategory, searchQuery]);
-
-  // Analysis
-  const analysis = useMemo(() => analyzeSkillset(data), [data]);
-  const actions = useMemo(() => generateActions(data, analysis), [data, analysis]);
+    return skills;
+  }, [extendedSkills, sortKey, sortOrder, filterCategory, filterRecommendation, searchQuery]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
-      setSortOrder('desc');
+      setSortOrder('asc');
     }
   };
 
-  const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => (
+  const SortHeader = ({ label, sortKeyName, width }: { label: string; sortKeyName: SortKey; width?: string }) => (
     <th
       onClick={() => handleSort(sortKeyName)}
       style={{
@@ -254,6 +835,7 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
         background: theme.colors.bgSecondary,
         position: 'sticky',
         top: 0,
+        width: width || 'auto',
       }}
     >
       {label}
@@ -265,10 +847,6 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
     </th>
   );
 
-  const installActions = actions.filter(a => a.type === 'install');
-  const removeActions = actions.filter(a => a.type === 'remove');
-  const updateActions = actions.filter(a => a.type === 'update');
-
   return (
     <div style={{
       display: 'flex',
@@ -278,133 +856,142 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
       overflow: 'auto',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          DIAGNOSTIC OVERVIEW (Inline Full Report)
-      ═══════════════════════════════════════════════════════════ */}
-      <DiagnosticReportInline data={data} healthScore={healthScore} />
-
-      {/* ═══════════════════════════════════════════════════════════
-          ANALYSIS SUMMARY
+          HEALTH SCORE BREAKDOWN (New!)
       ═══════════════════════════════════════════════════════════ */}
       <section style={{
         padding: '24px',
         borderBottom: `1px solid ${theme.colors.border}`,
+        background: theme.colors.bgSecondary,
       }}>
         <h2 style={{
           fontSize: theme.fontSize.md,
           fontWeight: theme.fontWeight.semibold,
           color: theme.colors.textPrimary,
           margin: 0,
-          marginBottom: '16px',
+          marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
         }}>
-          <span>📊</span> ANALYSIS SUMMARY
+          <span>❤️</span> HEALTH SCORE BREAKDOWN
         </h2>
-        
-        <p style={{
-          fontSize: theme.fontSize.sm,
-          color: theme.colors.textSecondary,
-          lineHeight: 1.6,
-          margin: 0,
-          marginBottom: '20px',
-          maxWidth: '700px',
-        }}>
-          {analysis.summary}
-        </p>
         
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '16px',
+          gridTemplateColumns: 'auto 1fr',
+          gap: '32px',
+          alignItems: 'start',
         }}>
-          {/* Strengths */}
+          {/* Score Ring */}
           <div style={{
-            padding: '16px',
-            background: theme.colors.bgSecondary,
-            borderRadius: theme.radius.md,
-            border: `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
           }}>
-            <h3 style={{
+            <HealthScoreRing score={healthBreakdown.overall} />
+            <span style={{
               fontSize: theme.fontSize.xs,
-              fontWeight: theme.fontWeight.semibold,
-              color: theme.colors.success,
+              color: theme.colors.textMuted,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              margin: 0,
-              marginBottom: '12px',
             }}>
-              Strengths
-            </h3>
-            <ul style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-            }}>
-              {analysis.strengths.map((s, i) => (
-                <li key={i} style={{
-                  fontSize: theme.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                }}>
-                  <span style={{ color: theme.colors.success }}>•</span>
-                  {s}
-                </li>
-              ))}
-            </ul>
+              Overall Score
+            </span>
           </div>
           
-          {/* Areas for Improvement */}
-          <div style={{
-            padding: '16px',
-            background: theme.colors.bgSecondary,
-            borderRadius: theme.radius.md,
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <h3 style={{
-              fontSize: theme.fontSize.xs,
-              fontWeight: theme.fontWeight.semibold,
-              color: theme.colors.warning,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              margin: 0,
-              marginBottom: '12px',
-            }}>
-              Areas for Improvement
-            </h3>
-            <ul style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-            }}>
-              {analysis.improvements.map((s, i) => (
-                <li key={i} style={{
-                  fontSize: theme.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                }}>
-                  <span style={{ color: theme.colors.warning }}>•</span>
-                  {s}
-                </li>
-              ))}
-            </ul>
+          {/* Breakdown Bars */}
+          <div>
+            <BreakdownBar {...healthBreakdown.balance} />
+            <BreakdownBar {...healthBreakdown.coverage} />
+            <BreakdownBar {...healthBreakdown.efficiency} />
+            <BreakdownBar {...healthBreakdown.redundancy} />
           </div>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          RECOMMENDED ACTIONS
+          QUICK ACTIONS + CATEGORY DISTRIBUTION
       ═══════════════════════════════════════════════════════════ */}
-      {actions.length > 0 && (
+      <section style={{
+        padding: '24px',
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '24px',
+        }}>
+          {/* Quick Actions */}
+          <div>
+            <h3 style={{
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              margin: 0,
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span>⚡</span> QUICK ACTIONS
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <QuickActionButton 
+                icon="🗑️" 
+                label="Remove Recommended" 
+                count={removeCount} 
+                color={theme.colors.error}
+                onClick={() => setFilterRecommendation(filterRecommendation === 'remove' ? null : 'remove')}
+              />
+              <QuickActionButton 
+                icon="🔄" 
+                label="Updates Available" 
+                count={updateCount} 
+                color={theme.colors.warning}
+                onClick={() => setFilterRecommendation(filterRecommendation === 'update' ? null : 'update')}
+              />
+              <QuickActionButton 
+                icon="📦" 
+                label="Overlapping Skills" 
+                count={overlappingCount} 
+                color={theme.colors.info}
+              />
+              <QuickActionButton 
+                icon="💤" 
+                label="Unused Skills" 
+                count={unusedCount} 
+                color={theme.colors.textMuted}
+              />
+            </div>
+          </div>
+          
+          {/* Category Distribution */}
+          <div>
+            <h3 style={{
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              margin: 0,
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span>📊</span> CATEGORY DISTRIBUTION
+            </h3>
+            <CategoryChart data={data} />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          SUGGESTED SKILLS (New!)
+      ═══════════════════════════════════════════════════════════ */}
+      {suggestedSkills.length > 0 && (
         <section style={{
           padding: '24px',
           borderBottom: `1px solid ${theme.colors.border}`,
+          background: `linear-gradient(90deg, ${theme.colors.accent}08, transparent)`,
         }}>
           <h2 style={{
             fontSize: theme.fontSize.md,
@@ -416,112 +1003,81 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
             alignItems: 'center',
             gap: '8px',
           }}>
-            <span>⚡</span> RECOMMENDED ACTIONS
+            <span>💡</span> SUGGESTED SKILLS
           </h2>
           
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
           }}>
-            {/* Install */}
-            {installActions.length > 0 && (
-              <div>
-                <h4 style={{
-                  fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.semibold,
-                  color: theme.colors.success,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  margin: 0,
-                  marginBottom: '8px',
+            {suggestedSkills.map((skill, i) => (
+              <div key={i} style={{
+                padding: '16px',
+                background: theme.colors.bgSecondary,
+                borderRadius: theme.radius.md,
+                border: `1px solid ${theme.colors.border}`,
+              }}>
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                }}>
-                  🟢 INSTALL
-                </h4>
-                {installActions.map((a, i) => (
-                  <div key={i} style={{
-                    fontSize: theme.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '6px',
-                    paddingLeft: '20px',
-                  }}>
-                    <span style={{ color: theme.colors.textPrimary, fontFamily: theme.fonts.mono }}>{a.skill}</span>
-                    <span style={{ color: theme.colors.textMuted }}> — {a.reason}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Remove */}
-            {removeActions.length > 0 && (
-              <div>
-                <h4 style={{
-                  fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.semibold,
-                  color: theme.colors.error,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  margin: 0,
+                  gap: '8px',
                   marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
                 }}>
-                  🔴 REMOVE
-                </h4>
-                {removeActions.map((a, i) => (
-                  <div key={i} style={{
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: theme.categoryColors[skill.category] || theme.colors.textMuted,
+                  }} />
+                  <span style={{
                     fontSize: theme.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '6px',
-                    paddingLeft: '20px',
+                    fontWeight: theme.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
                   }}>
-                    <span style={{ color: theme.colors.textPrimary, fontFamily: theme.fonts.mono }}>{a.skill}</span>
-                    <span style={{ color: theme.colors.textMuted }}> — {a.reason}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Update */}
-            {updateActions.length > 0 && (
-              <div>
-                <h4 style={{
+                    {skill.name}
+                  </span>
+                </div>
+                <div style={{
                   fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.semibold,
-                  color: theme.colors.warning,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  margin: 0,
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
+                  color: theme.colors.textMuted,
+                  marginBottom: '4px',
                 }}>
-                  🟡 UPDATE
-                </h4>
-                {updateActions.map((a, i) => (
-                  <div key={i} style={{
-                    fontSize: theme.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '6px',
-                    paddingLeft: '20px',
+                  {skill.reason}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span style={{
+                    fontSize: theme.fontSize.xs,
+                    color: theme.colors.textMuted,
+                    fontFamily: theme.fonts.mono,
                   }}>
-                    <span style={{ color: theme.colors.textPrimary, fontFamily: theme.fonts.mono }}>{a.skill}</span>
-                    <span style={{ color: theme.colors.textMuted }}> — {a.reason}</span>
-                  </div>
-                ))}
+                    {skill.estimatedTokens}
+                  </span>
+                  <button style={{
+                    padding: '4px 12px',
+                    fontSize: theme.fontSize.xs,
+                    background: theme.colors.accent,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: theme.radius.sm,
+                    cursor: 'pointer',
+                    fontWeight: theme.fontWeight.medium,
+                  }}>
+                    + Install
+                  </button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         </section>
       )}
 
       {/* ═══════════════════════════════════════════════════════════
-          SKILL LIST
+          SKILL LIST (Enhanced!)
       ═══════════════════════════════════════════════════════════ */}
       <section style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{
@@ -529,16 +1085,38 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
           borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap',
         }}>
           <h2 style={{
             fontSize: theme.fontSize.md,
             fontWeight: theme.fontWeight.semibold,
             color: theme.colors.textPrimary,
             margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
           }}>
-            📋 SKILL LIST
+            <span>📋</span> SKILL LIST
           </h2>
+          
+          {filterRecommendation && (
+            <button
+              onClick={() => setFilterRecommendation(null)}
+              style={{
+                padding: '4px 12px',
+                fontSize: theme.fontSize.xs,
+                background: theme.colors.bgTertiary,
+                color: theme.colors.textSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radius.sm,
+                cursor: 'pointer',
+              }}
+            >
+              Clear filter: {filterRecommendation} ✕
+            </button>
+          )}
         </div>
         
         {/* Filters */}
@@ -551,13 +1129,13 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
         }}>
           <input
             type="text"
-            placeholder="Search skills..."
+            placeholder="🔍 Search skills..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               flex: 1,
               minWidth: '200px',
-              padding: '8px 12px',
+              padding: '10px 14px',
               background: theme.colors.bgSecondary,
               border: `1px solid ${theme.colors.border}`,
               borderRadius: theme.radius.md,
@@ -572,7 +1150,7 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
             value={filterCategory || ''}
             onChange={(e) => setFilterCategory(e.target.value || null)}
             style={{
-              padding: '8px 12px',
+              padding: '10px 14px',
               background: theme.colors.bgSecondary,
               border: `1px solid ${theme.colors.border}`,
               borderRadius: theme.radius.md,
@@ -592,11 +1170,13 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '8px 12px',
+            padding: '10px 14px',
             fontSize: theme.fontSize.sm,
             color: theme.colors.textMuted,
+            background: theme.colors.bgSecondary,
+            borderRadius: theme.radius.md,
           }}>
-            {sortedNodes.length} skills
+            {sortedSkills.length} of {extendedSkills.length} skills
           </div>
         </div>
 
@@ -610,9 +1190,10 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
             <thead>
               <tr>
                 <SortHeader label="Skill" sortKeyName="name" />
-                <SortHeader label="Category" sortKeyName="category" />
-                <SortHeader label="Tokens" sortKeyName="tokens" />
-                <SortHeader label="Connections" sortKeyName="connections" />
+                <SortHeader label="Category" sortKeyName="category" width="100px" />
+                <SortHeader label="Tokens" sortKeyName="tokens" width="90px" />
+                <SortHeader label="Connections" sortKeyName="connections" width="100px" />
+                <SortHeader label="Usage" sortKeyName="usage" width="100px" />
                 <th style={{
                   padding: '12px 16px',
                   textAlign: 'left',
@@ -625,111 +1206,141 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
                   background: theme.colors.bgSecondary,
                   position: 'sticky',
                   top: 0,
+                  width: '90px',
                 }}>
-                  Status
+                  Overlap
                 </th>
+                <SortHeader label="Action" sortKeyName="recommendation" width="110px" />
               </tr>
             </thead>
             <tbody>
-              {sortedNodes.map((node) => {
-                const color = theme.categoryColors[node.category] || theme.colors.textMuted;
-                
-                // Essential skills (high token + important categories)
-                const essentialSkills = ['prompt-guard', 'marketing-psychology', 'thinking-model-enhancer'];
-                const isEssential = essentialSkills.includes(node.id) || node.category === 'security';
-                
-                // Check for duplicates (simplified - similar names)
-                const isDuplicate = node.id.includes('-skill') && node.id.includes('-max');
-                
-                // Check for updates (simulated - high token count might indicate old version)
-                const hasUpdate = node.tokens > 5000;
-                
-                // Status logic
-                const getStatus = () => {
-                  if (isDuplicate) return { label: 'Duplicate', color: theme.colors.error, icon: '⚠️' };
-                  if (hasUpdate) return { label: 'Update Available', color: theme.colors.warning, icon: '🔄' };
-                  if (isEssential) return { label: 'Essential', color: theme.colors.success, icon: '⭐' };
-                  return { label: 'Active', color: theme.colors.textMuted, icon: '✓' };
-                };
-                
-                const status = getStatus();
+              {sortedSkills.map((skill) => {
+                const color = theme.categoryColors[skill.node.category] || theme.colors.textMuted;
+                const isExpanded = expandedSkill === skill.node.id;
                 
                 return (
-                  <tr
-                    key={node.id}
-                    style={{
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = theme.colors.bgSecondary}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{
-                        fontSize: theme.fontSize.sm,
-                        fontWeight: theme.fontWeight.medium,
-                        color: theme.colors.textPrimary,
-                      }}>
-                        {node.name}
-                      </div>
-                      <div style={{
-                        fontSize: theme.fontSize.xs,
-                        color: theme.colors.textMuted,
-                        fontFamily: theme.fonts.mono,
-                      }}>
-                        {node.id}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: theme.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                        textTransform: 'capitalize',
-                      }}>
+                  <>
+                    <tr
+                      key={skill.node.id}
+                      onClick={() => setExpandedSkill(isExpanded ? null : skill.node.id)}
+                      style={{
+                        borderBottom: isExpanded ? 'none' : `1px solid ${theme.colors.border}`,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease',
+                        background: isExpanded ? theme.colors.bgSecondary : 'transparent',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isExpanded) e.currentTarget.style.background = theme.colors.bgSecondary;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isExpanded) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}>
+                          <span style={{
+                            color: theme.colors.textMuted,
+                            fontSize: '10px',
+                            transition: 'transform 0.15s ease',
+                            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                          }}>
+                            ▶
+                          </span>
+                          <div>
+                            <div style={{
+                              fontSize: theme.fontSize.sm,
+                              fontWeight: theme.fontWeight.medium,
+                              color: theme.colors.textPrimary,
+                            }}>
+                              {skill.node.name}
+                            </div>
+                            <div style={{
+                              fontSize: theme.fontSize.xs,
+                              color: theme.colors.textMuted,
+                              fontFamily: theme.fonts.mono,
+                            }}>
+                              {skill.node.id}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
                         <span style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          background: color,
-                        }} />
-                        {node.category}
-                      </span>
-                    </td>
-                    <td style={{
-                      padding: '12px 16px',
-                      fontSize: theme.fontSize.sm,
-                      fontFamily: theme.fonts.mono,
-                      color: 'rgba(255, 255, 255, 0.7)',
-                    }}>
-                      ~{node.tokens.toLocaleString()}
-                    </td>
-                    <td style={{
-                      padding: '12px 16px',
-                      fontSize: theme.fontSize.sm,
-                      fontFamily: theme.fonts.mono,
-                      color: theme.colors.textSecondary,
-                    }}>
-                      {node.connections.length}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '2px 8px',
-                        fontSize: theme.fontSize.xs,
-                        color: status.color,
-                        background: `${status.color}15`,
-                        borderRadius: theme.radius.sm,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: theme.fontSize.sm,
+                          color: theme.colors.textSecondary,
+                          textTransform: 'capitalize',
+                        }}>
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: color,
+                          }} />
+                          {skill.node.category}
+                        </span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        fontSize: theme.fontSize.sm,
+                        fontFamily: theme.fonts.mono,
+                        color: 'rgba(255, 255, 255, 0.7)',
                       }}>
-                        <span>{status.icon}</span>
-                        {status.label}
-                      </span>
-                    </td>
-                  </tr>
+                        ~{skill.node.tokens.toLocaleString()}
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        fontSize: theme.fontSize.sm,
+                        fontFamily: theme.fonts.mono,
+                        color: theme.colors.textSecondary,
+                      }}>
+                        {skill.node.connections.length}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <UsageBadge level={skill.usage} />
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {skill.overlap.hasOverlap ? (
+                          <span
+                            title={skill.overlap.reason}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              fontSize: theme.fontSize.xs,
+                              color: theme.colors.warning,
+                              background: `${theme.colors.warning}15`,
+                              borderRadius: theme.radius.sm,
+                              cursor: 'help',
+                            }}
+                          >
+                            ⚠️ Yes
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: theme.fontSize.xs,
+                            color: theme.colors.textMuted,
+                          }}>
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <RecommendationBadge 
+                          type={skill.recommendation} 
+                          removeReason={skill.removeReason}
+                        />
+                      </td>
+                    </tr>
+                    {isExpanded && <ExpandedSkillDetails skill={skill} />}
+                  </>
                 );
               })}
             </tbody>
