@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { theme } from '../styles/theme';
-import type { VizData, SkillNode } from '../types';
+import type { VizData, SkillNode, VulnerabilityLevel } from '../types';
 import { getUpdateType, hasUpdate, formatVersion, getUpdateColor, type UpdateType } from '../utils/version';
 
 interface ReportViewProps {
@@ -259,6 +259,175 @@ interface SuggestedSkill {
   reason: string;
   estimatedTokens: string;
 }
+
+// ═══════════════════════════════════════════════════════════
+// Security Analysis
+// ═══════════════════════════════════════════════════════════
+
+interface SecurityOverview {
+  overallScore: number;
+  overallLevel: VulnerabilityLevel;
+  highRiskCount: number;
+  criticalCount: number;
+  riskSkills: { node: SkillNode; reason: string }[];
+  recommendations: string[];
+}
+
+function calculateSecurityOverview(nodes: SkillNode[]): SecurityOverview {
+  const nodesWithVuln = nodes.filter(n => n.vulnerability);
+  
+  if (nodesWithVuln.length === 0) {
+    return {
+      overallScore: 0,
+      overallLevel: 'low',
+      highRiskCount: 0,
+      criticalCount: 0,
+      riskSkills: [],
+      recommendations: ['No vulnerability data available'],
+    };
+  }
+  
+  // Calculate average score
+  const totalScore = nodesWithVuln.reduce((sum, n) => sum + (n.vulnerability?.score || 0), 0);
+  const overallScore = Math.round(totalScore / nodesWithVuln.length);
+  
+  // Determine overall level
+  let overallLevel: VulnerabilityLevel;
+  if (overallScore <= 25) overallLevel = 'low';
+  else if (overallScore <= 50) overallLevel = 'medium';
+  else if (overallScore <= 75) overallLevel = 'high';
+  else overallLevel = 'critical';
+  
+  // Count high-risk skills
+  const criticalCount = nodesWithVuln.filter(n => n.vulnerability?.level === 'critical').length;
+  const highRiskCount = nodesWithVuln.filter(n => 
+    n.vulnerability?.level === 'high' || n.vulnerability?.level === 'critical'
+  ).length;
+  
+  // Get risk skills (high + critical)
+  const riskSkills = nodesWithVuln
+    .filter(n => n.vulnerability && (n.vulnerability.level === 'high' || n.vulnerability.level === 'critical'))
+    .sort((a, b) => (b.vulnerability?.score || 0) - (a.vulnerability?.score || 0))
+    .slice(0, 5)
+    .map(node => {
+      const v = node.vulnerability!;
+      const reasons: string[] = [];
+      if (v.permissions.includes('code-execution')) reasons.push('code execution');
+      if (v.permissions.includes('filesystem')) reasons.push('file access');
+      if (v.handlesSensitiveData) reasons.push('sensitive data');
+      if (v.trustSource === 'community' || v.trustSource === 'unknown') reasons.push(v.trustSource + ' source');
+      return {
+        node,
+        reason: reasons.join(' + ') || 'elevated risk',
+      };
+    });
+  
+  // Generate recommendations
+  const recommendations: string[] = [];
+  
+  const outdatedHighRisk = nodesWithVuln.filter(n => 
+    n.vulnerability?.level === 'high' && n.version !== n.latestVersion
+  );
+  if (outdatedHighRisk.length > 0) {
+    recommendations.push(`Update ${outdatedHighRisk.length} high-risk skill(s) with pending updates`);
+  }
+  
+  const communitySkills = nodesWithVuln.filter(n => 
+    n.vulnerability?.trustSource === 'community' || n.vulnerability?.trustSource === 'unknown'
+  );
+  if (communitySkills.length > 0) {
+    recommendations.push(`Review ${communitySkills.length} community/unknown source skill(s)`);
+  }
+  
+  const sensitiveSkills = nodesWithVuln.filter(n => 
+    n.vulnerability?.handlesSensitiveData && n.vulnerability.level !== 'low'
+  );
+  if (sensitiveSkills.length > 0) {
+    recommendations.push(`Audit ${sensitiveSkills.length} skill(s) handling sensitive data`);
+  }
+  
+  if (recommendations.length === 0) {
+    recommendations.push('Security posture looks good! Keep skills updated.');
+  }
+  
+  return {
+    overallScore,
+    overallLevel,
+    highRiskCount,
+    criticalCount,
+    riskSkills,
+    recommendations,
+  };
+}
+
+const VULNERABILITY_COLORS: Record<VulnerabilityLevel, string> = {
+  low: '#22c55e',
+  medium: '#eab308',
+  high: '#f97316',
+  critical: '#ef4444',
+};
+
+function SecurityScoreRing({ score, level, size = 100 }: { score: number; level: VulnerabilityLevel; size?: number }) {
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score / 100) * circumference;
+  const color = VULNERABILITY_COLORS[level];
+  
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={theme.colors.bgTertiary}
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - progress}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontSize: '22px',
+          fontWeight: theme.fontWeight.bold,
+          color: color,
+          fontFamily: theme.fonts.mono,
+        }}>
+          {score}
+        </div>
+        <div style={{
+          fontSize: '9px',
+          color: theme.colors.textMuted,
+          textTransform: 'uppercase',
+        }}>
+          risk
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Suggested Skills (for missing categories)
+// ═══════════════════════════════════════════════════════════
 
 function getSuggestedSkills(data: VizData): SuggestedSkill[] {
   const presentCategories = new Set(data.nodes.map(n => n.category));
@@ -801,6 +970,7 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
   const extendedSkills = useMemo(() => analyzeAllSkills(data), [data]);
   const healthBreakdown = useMemo(() => calculateHealthBreakdown(data, extendedSkills), [data, extendedSkills]);
   const suggestedSkills = useMemo(() => getSuggestedSkills(data), [data]);
+  const securityOverview = useMemo(() => calculateSecurityOverview(data.nodes), [data.nodes]);
   
   // Stats
   const removeCount = extendedSkills.filter(s => s.recommendation === 'remove').length;
@@ -958,6 +1128,159 @@ export default function ReportView({ data, healthScore = 60 }: ReportViewProps) 
             <BreakdownBar {...healthBreakdown.coverage} />
             <BreakdownBar {...healthBreakdown.efficiency} />
             <BreakdownBar {...healthBreakdown.redundancy} />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          SECURITY OVERVIEW (New!)
+      ═══════════════════════════════════════════════════════════ */}
+      <section style={{
+        padding: '24px',
+        borderBottom: `1px solid ${theme.colors.border}`,
+        background: securityOverview.highRiskCount > 0 
+          ? `linear-gradient(90deg, ${VULNERABILITY_COLORS[securityOverview.overallLevel]}08, transparent)`
+          : undefined,
+      }}>
+        <h2 style={{
+          fontSize: theme.fontSize.md,
+          fontWeight: theme.fontWeight.semibold,
+          color: theme.colors.textPrimary,
+          margin: 0,
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <span>🔒</span> SECURITY OVERVIEW
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr 1fr',
+          gap: '24px',
+          alignItems: 'start',
+        }}>
+          {/* Risk Score Ring */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <SecurityScoreRing 
+              score={securityOverview.overallScore} 
+              level={securityOverview.overallLevel} 
+            />
+            <span style={{
+              fontSize: theme.fontSize.xs,
+              color: VULNERABILITY_COLORS[securityOverview.overallLevel],
+              textTransform: 'uppercase',
+              fontWeight: theme.fontWeight.semibold,
+            }}>
+              {securityOverview.overallLevel} Risk
+            </span>
+          </div>
+          
+          {/* High Risk Skills */}
+          <div>
+            <h4 style={{
+              fontSize: theme.fontSize.xs,
+              fontWeight: theme.fontWeight.medium,
+              color: theme.colors.textMuted,
+              margin: 0,
+              marginBottom: '12px',
+              textTransform: 'uppercase',
+            }}>
+              🔓 High Risk Skills ({securityOverview.highRiskCount})
+            </h4>
+            {securityOverview.riskSkills.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {securityOverview.riskSkills.map(({ node, reason }) => (
+                  <div 
+                    key={node.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      background: theme.colors.bgTertiary,
+                      borderRadius: theme.radius.md,
+                      borderLeft: `3px solid ${VULNERABILITY_COLORS[node.vulnerability?.level || 'medium']}`,
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: theme.fontSize.sm,
+                        fontWeight: theme.fontWeight.medium,
+                        color: theme.colors.textPrimary,
+                        fontFamily: theme.fonts.mono,
+                      }}>
+                        {node.name}
+                      </div>
+                      <div style={{
+                        fontSize: theme.fontSize.xs,
+                        color: theme.colors.textMuted,
+                      }}>
+                        {reason}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: theme.fontSize.xs,
+                      fontFamily: theme.fonts.mono,
+                      color: VULNERABILITY_COLORS[node.vulnerability?.level || 'medium'],
+                      fontWeight: theme.fontWeight.semibold,
+                    }}>
+                      {node.vulnerability?.score}/100
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                padding: '16px',
+                background: theme.colors.bgTertiary,
+                borderRadius: theme.radius.md,
+                color: theme.colors.success,
+                fontSize: theme.fontSize.sm,
+              }}>
+                ✅ No high-risk skills detected
+              </div>
+            )}
+          </div>
+          
+          {/* Recommendations */}
+          <div>
+            <h4 style={{
+              fontSize: theme.fontSize.xs,
+              fontWeight: theme.fontWeight.medium,
+              color: theme.colors.textMuted,
+              margin: 0,
+              marginBottom: '12px',
+              textTransform: 'uppercase',
+            }}>
+              💡 Security Recommendations
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {securityOverview.recommendations.map((rec, i) => (
+                <div 
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    background: theme.colors.bgTertiary,
+                    borderRadius: theme.radius.md,
+                    fontSize: theme.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  <span style={{ color: theme.colors.warning }}>→</span>
+                  {rec}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

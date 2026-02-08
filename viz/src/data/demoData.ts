@@ -1,9 +1,141 @@
-import type { VizData, SkillNode, SkillEdge, SkillCluster, VizMetrics, HealthStatus } from '../types';
+import type { VizData, SkillNode, SkillEdge, SkillCluster, VizMetrics, HealthStatus, VulnerabilityInfo, VulnerabilityLevel, TrustSource } from '../types';
 import { theme } from '../styles/theme';
 import { recommendations } from './recommendations';
 
 // Use theme.categoryColors as single source of truth
 const CATEGORY_COLORS = theme.categoryColors;
+
+// ═══════════════════════════════════════════════════════════
+// Vulnerability Scoring System
+// ═══════════════════════════════════════════════════════════
+
+interface VulnerabilityInput {
+  permissions: string[];
+  trustSource: TrustSource;
+  handlesSensitiveData: boolean;
+  sensitivityDetails?: { apiKeys?: boolean; personalInfo?: boolean };
+}
+
+function calculateVulnerabilityScore(
+  input: VulnerabilityInput,
+  version?: string,
+  latestVersion?: string
+): { score: number; level: VulnerabilityLevel } {
+  let score = 0;
+
+  // A. Permissions (0-25)
+  if (input.permissions.includes('filesystem')) score += 10;
+  if (input.permissions.includes('code-execution')) score += 10;
+  if (input.permissions.includes('network')) score += 5;
+
+  // B. Update status (0-25)
+  if (version && latestVersion && version !== latestVersion) {
+    const [currMajor, currMinor] = version.split('.').map(Number);
+    const [latestMajor, latestMinor] = latestVersion.split('.').map(Number);
+    
+    if (latestMajor > currMajor) {
+      score += 25; // Major update needed
+    } else if (latestMinor > currMinor) {
+      score += 15; // Minor update needed
+    } else {
+      score += 5;  // Patch update needed
+    }
+  }
+
+  // C. Trust source (0-25)
+  switch (input.trustSource) {
+    case 'unknown': score += 25; break;
+    case 'community': score += 15; break;
+    case 'verified':
+    case 'official': score += 0; break;
+  }
+
+  // D. Sensitive data (0-25)
+  if (input.handlesSensitiveData) {
+    if (input.sensitivityDetails?.apiKeys) score += 15;
+    if (input.sensitivityDetails?.personalInfo) score += 10;
+    // If no details specified but handles sensitive data, assume both
+    if (!input.sensitivityDetails?.apiKeys && !input.sensitivityDetails?.personalInfo) {
+      score += 15;
+    }
+  }
+
+  // Cap at 100
+  score = Math.min(100, score);
+
+  // Score to level
+  let level: VulnerabilityLevel;
+  if (score <= 25) level = 'low';
+  else if (score <= 50) level = 'medium';
+  else if (score <= 75) level = 'high';
+  else level = 'critical';
+
+  return { score, level };
+}
+
+// Pre-defined vulnerability data for demo skills
+const SKILL_VULNERABILITY_DATA: Record<string, VulnerabilityInput> = {
+  // Communication
+  discord: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  slack: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  imsg: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  himalaya: { permissions: ['network', 'filesystem'], trustSource: 'community', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true, apiKeys: true } },
+  wacli: { permissions: ['network'], trustSource: 'community', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  
+  // Development
+  github: { permissions: ['network', 'code-execution'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  'coding-agent': { permissions: ['filesystem', 'code-execution'], trustSource: 'verified', handlesSensitiveData: false },
+  'skill-creator': { permissions: ['filesystem', 'code-execution'], trustSource: 'official', handlesSensitiveData: false },
+  tmux: { permissions: ['code-execution'], trustSource: 'verified', handlesSensitiveData: false },
+  oracle: { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: false },
+  gemini: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  mcporter: { permissions: ['network', 'code-execution'], trustSource: 'community', handlesSensitiveData: false },
+  'session-logs': { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  
+  // Design
+  canvas: { permissions: [], trustSource: 'official', handlesSensitiveData: false },
+  'theme-factory': { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  'mcp-builder': { permissions: ['filesystem', 'code-execution'], trustSource: 'official', handlesSensitiveData: false },
+  'web-artifacts': { permissions: ['network'], trustSource: 'community', handlesSensitiveData: false },
+  
+  // Media
+  whisper: { permissions: ['filesystem'], trustSource: 'official', handlesSensitiveData: false },
+  spotify: { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  peekaboo: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  gifgrep: { permissions: ['network'], trustSource: 'community', handlesSensitiveData: false },
+  pdf: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  pptx: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  docx: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: false },
+  
+  // Productivity
+  notion: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true, personalInfo: true } },
+  obsidian: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  things: { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  'apple-notes': { permissions: ['filesystem'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  gog: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true, personalInfo: true } },
+  'bear-notes': { permissions: ['filesystem'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  
+  // Security
+  'prompt-guard': { permissions: [], trustSource: 'official', handlesSensitiveData: false },
+  healthcheck: { permissions: ['filesystem', 'code-execution'], trustSource: 'official', handlesSensitiveData: false },
+  '1password': { permissions: ['code-execution'], trustSource: 'official', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  blackswan: { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: false },
+  
+  // Marketing
+  copywriting: { permissions: [], trustSource: 'verified', handlesSensitiveData: false },
+  'seo-audit': { permissions: ['network'], trustSource: 'community', handlesSensitiveData: false },
+  'launch-strategy': { permissions: [], trustSource: 'verified', handlesSensitiveData: false },
+  'content-strategy': { permissions: [], trustSource: 'verified', handlesSensitiveData: false },
+  'paid-ads': { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  'social-content': { permissions: [], trustSource: 'verified', handlesSensitiveData: false },
+  
+  // Utility
+  weather: { permissions: ['network'], trustSource: 'official', handlesSensitiveData: false },
+  summarize: { permissions: [], trustSource: 'community', handlesSensitiveData: false },
+  'voice-call': { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+  openhue: { permissions: ['network'], trustSource: 'community', handlesSensitiveData: true, sensitivityDetails: { apiKeys: true } },
+  'local-places': { permissions: ['network'], trustSource: 'verified', handlesSensitiveData: true, sensitivityDetails: { personalInfo: true } },
+};
 
 // Sample skill data based on the actual catalog
 // version: currently installed, latestVersion: available on ClawdHub
@@ -172,24 +304,42 @@ export function generateDemoData(): VizData {
   
   const positions = generatePositions(DEMO_SKILLS, connectionCounts);
   
-  // Build nodes with health status and connection count
+  // Build nodes with health status, connection count, and vulnerability
   const maxTokens = Math.max(...DEMO_SKILLS.map(s => s.tokens));
-  const nodes: SkillNode[] = DEMO_SKILLS.map((skill, i) => ({
-    id: skill.id,
-    name: skill.name,
-    category: skill.category,
-    x: positions[i].x,
-    y: positions[i].y,
-    z: positions[i].z,
-    tokens: skill.tokens,
-    color: CATEGORY_COLORS[skill.category] || '#ffffff',
-    size: (skill.tokens / maxTokens) * 0.8 + 0.2,
-    connections: [],
-    version: skill.version,
-    latestVersion: skill.latestVersion,
-    health: getHealthStatus(skill.id, skill.version, skill.latestVersion),
-    connectionCount: connectionCounts.get(skill.id) || 0,
-  }));
+  const nodes: SkillNode[] = DEMO_SKILLS.map((skill, i) => {
+    // Calculate vulnerability if data exists
+    const vulnInput = SKILL_VULNERABILITY_DATA[skill.id];
+    let vulnerability: VulnerabilityInfo | undefined;
+    
+    if (vulnInput) {
+      const { score, level } = calculateVulnerabilityScore(vulnInput, skill.version, skill.latestVersion);
+      vulnerability = {
+        score,
+        level,
+        permissions: vulnInput.permissions,
+        trustSource: vulnInput.trustSource,
+        handlesSensitiveData: vulnInput.handlesSensitiveData,
+      };
+    }
+    
+    return {
+      id: skill.id,
+      name: skill.name,
+      category: skill.category,
+      x: positions[i].x,
+      y: positions[i].y,
+      z: positions[i].z,
+      tokens: skill.tokens,
+      color: CATEGORY_COLORS[skill.category] || '#ffffff',
+      size: (skill.tokens / maxTokens) * 0.8 + 0.2,
+      connections: [],
+      version: skill.version,
+      latestVersion: skill.latestVersion,
+      health: getHealthStatus(skill.id, skill.version, skill.latestVersion),
+      connectionCount: connectionCounts.get(skill.id) || 0,
+      vulnerability,
+    };
+  });
   
   // Build edges
   const edges: SkillEdge[] = similarPairs.map(pair => ({

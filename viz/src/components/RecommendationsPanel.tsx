@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { recommendations } from '../data/recommendations';
 import { theme } from '../styles/theme';
-import type { DiagnosisItem, InstallItem, RemoveItem, UpdateItem } from '../data/recommendations';
+import type { DiagnosisItem, InstallItem, RemoveItem, UpdateItem, SecurityItem } from '../data/recommendations';
 
 // ═══════════════════════════════════════════════════════════
 // Terminal-style accent colors
@@ -11,6 +11,15 @@ const terminalColors = {
   install: '#4ADE80',   // Green - add/success
   remove: '#EF4444',    // Red - delete/danger
   update: '#22D3EE',    // Cyan - info/update
+  security: '#F97316',  // Orange - security/risk
+} as const;
+
+// Vulnerability level colors
+const riskColors = {
+  low: '#22c55e',
+  medium: '#eab308',
+  high: '#f97316',
+  critical: '#ef4444',
 } as const;
 
 // ═══════════════════════════════════════════════════════════
@@ -314,6 +323,103 @@ function UpdateSection({ items }: { items: UpdateItem[] }) {
   );
 }
 
+function SecuritySection({ items }: { items: SecurityItem[] }) {
+  return (
+    <div style={{ padding: '16px' }}>
+      {items.map((item, i) => {
+        const riskColor = riskColors[item.risk];
+        return (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              marginBottom: '10px',
+              background: theme.colors.bgTertiary,
+              borderRadius: theme.radius.md,
+              overflow: 'hidden',
+              transition: theme.transitions.fast,
+            }}
+          >
+            {/* Left accent bar */}
+            <div style={{
+              width: '3px',
+              background: riskColor,
+              flexShrink: 0,
+            }} />
+            <div style={{ padding: '14px 16px', flex: 1 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '6px',
+              }}>
+                <span style={{
+                  fontSize: theme.fontSize.sm,
+                  fontWeight: theme.fontWeight.semibold,
+                  color: theme.colors.textPrimary,
+                  fontFamily: theme.fonts.mono,
+                }}>
+                  🔓 {item.id}
+                </span>
+                <span style={{
+                  fontSize: theme.fontSize.xs,
+                  fontWeight: theme.fontWeight.medium,
+                  color: riskColor,
+                  padding: '2px 8px',
+                  background: `${riskColor}15`,
+                  borderRadius: theme.radius.sm,
+                  textTransform: 'uppercase',
+                }}>
+                  {item.risk} ({item.score})
+                </span>
+              </div>
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: theme.colors.textMuted,
+                marginBottom: '8px',
+                lineHeight: 1.5,
+              }}>
+                {item.reason}
+              </div>
+              {item.permissions && item.permissions.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap',
+                }}>
+                  {item.permissions.map((perm, j) => (
+                    <span
+                      key={j}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: theme.colors.bgSecondary,
+                        borderRadius: theme.radius.sm,
+                        color: theme.colors.textMuted,
+                        fontFamily: theme.fonts.mono,
+                      }}
+                    >
+                      {perm}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{
+                fontSize: theme.fontSize.xs,
+                color: terminalColors.security,
+                fontWeight: theme.fontWeight.medium,
+              }}>
+                → {item.action}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════════════════
@@ -323,7 +429,7 @@ interface RecommendationsPanelProps {
 }
 
 export default function RecommendationsPanel({ position = 'right', embedded = false }: RecommendationsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'diagnosis' | 'install' | 'remove' | 'update'>('diagnosis');
+  const [activeTab, setActiveTab] = useState<'diagnosis' | 'install' | 'remove' | 'update' | 'security'>('diagnosis');
 
   const isBottom = position === 'bottom';
   const isMobile = position === 'mobile';
@@ -395,6 +501,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
         display: 'flex',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
+        overflowX: 'auto',
       }}>
         <Tab 
           active={activeTab === 'diagnosis'} 
@@ -403,6 +510,14 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
           accentColor={terminalColors.analysis}
         >
           Analysis
+        </Tab>
+        <Tab 
+          active={activeTab === 'security'} 
+          onClick={() => setActiveTab('security')} 
+          count={recommendations.security.length}
+          accentColor={terminalColors.security}
+        >
+          🔓 Security
         </Tab>
         <Tab 
           active={activeTab === 'install'} 
@@ -433,6 +548,7 @@ export default function RecommendationsPanel({ position = 'right', embedded = fa
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {activeTab === 'diagnosis' && <DiagnosisSection items={recommendations.diagnosis} />}
+        {activeTab === 'security' && <SecuritySection items={recommendations.security} />}
         {activeTab === 'install' && <InstallSection items={recommendations.install} />}
         {activeTab === 'remove' && <RemoveSection items={recommendations.remove} />}
         {activeTab === 'update' && <UpdateSection items={recommendations.update} />}

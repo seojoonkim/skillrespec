@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import type { SkillNode, HealthStatus } from '../types';
+import type { SkillNode, HealthStatus, VulnerabilityLevel } from '../types';
 
 interface SkillNodesProps {
   nodes: SkillNode[];
@@ -55,6 +55,44 @@ const HEALTH_CONFIG: Record<HealthStatus, {
   },
 };
 
+// Vulnerability-based visual properties
+const VULNERABILITY_CONFIG: Record<VulnerabilityLevel, {
+  ringColor: string;
+  ringOpacity: number;
+  pulseSpeed: number;
+  showWarning: boolean;
+  icon: string;
+}> = {
+  low: {
+    ringColor: '#22c55e',  // Green
+    ringOpacity: 0,
+    pulseSpeed: 0,
+    showWarning: false,
+    icon: '🟢',
+  },
+  medium: {
+    ringColor: '#eab308',  // Yellow
+    ringOpacity: 0.25,
+    pulseSpeed: 1,
+    showWarning: false,
+    icon: '🟡',
+  },
+  high: {
+    ringColor: '#f97316',  // Orange
+    ringOpacity: 0.4,
+    pulseSpeed: 2,
+    showWarning: true,
+    icon: '🟠',
+  },
+  critical: {
+    ringColor: '#ef4444',  // Red
+    ringOpacity: 0.5,
+    pulseSpeed: 3,
+    showWarning: true,
+    icon: '🔴',
+  },
+};
+
 function SkillNodeMesh({ 
   node, 
   isSelected, 
@@ -73,6 +111,7 @@ function SkillNodeMesh({
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const vulnRingRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   
   const baseSize = node.size * 0.4;
@@ -81,6 +120,10 @@ function SkillNodeMesh({
   // Get health-based config (fallback to healthy if undefined)
   const healthConfig = HEALTH_CONFIG[node.health || 'healthy'] || HEALTH_CONFIG.healthy;
   const emissiveColor = healthConfig.emissiveColor || node.color;
+  
+  // Get vulnerability config
+  const vulnLevel = node.vulnerability?.level || 'low';
+  const vulnConfig = VULNERABILITY_CONFIG[vulnLevel];
   
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -126,6 +169,13 @@ function SkillNodeMesh({
       ringRef.current.rotation.z = time * 2;
       ringRef.current.rotation.x = Math.sin(time) * 0.3;
     }
+    
+    // Vulnerability ring animation
+    if (vulnRingRef.current && vulnConfig.pulseSpeed > 0) {
+      const vulnPulse = 0.5 + Math.sin(time * vulnConfig.pulseSpeed) * 0.5;
+      (vulnRingRef.current.material as THREE.MeshBasicMaterial).opacity = vulnConfig.ringOpacity * vulnPulse;
+      vulnRingRef.current.rotation.z = time * 0.5;
+    }
   });
 
   // Health indicator colors for glow
@@ -158,6 +208,19 @@ function SkillNodeMesh({
             color={glowColor} 
             transparent 
             opacity={0.4}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+      
+      {/* Vulnerability warning ring (outer) */}
+      {vulnConfig.ringOpacity > 0 && !isSelected && !isHovered && (
+        <mesh ref={vulnRingRef} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[baseSize * 1.6, baseSize * 1.8, 6]} />
+          <meshBasicMaterial 
+            color={vulnConfig.ringColor} 
+            transparent 
+            opacity={vulnConfig.ringOpacity}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -239,6 +302,7 @@ function SkillNodeMesh({
             }}>
               {node.health === 'shouldRemove' && <span style={{ color: '#ff5555' }}>⚠️</span>}
               {node.health === 'needsUpdate' && <span style={{ color: '#ffa500' }}>🔄</span>}
+              {vulnConfig.showWarning && <span>🔓</span>}
               {node.name}
             </div>
             <div style={{ 
@@ -266,6 +330,23 @@ function SkillNodeMesh({
             {node.health === 'needsUpdate' && node.version && node.latestVersion && (
               <div style={{ fontSize: 10, color: '#ffa500', marginTop: 4 }}>
                 🔄 Update: {node.version} → {node.latestVersion}
+              </div>
+            )}
+            {node.vulnerability && node.vulnerability.level !== 'low' && (
+              <div style={{ 
+                fontSize: 10, 
+                color: vulnConfig.ringColor, 
+                marginTop: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}>
+                {vulnConfig.icon} Risk: {node.vulnerability.level.toUpperCase()} ({node.vulnerability.score}/100)
+                {node.vulnerability.permissions.length > 0 && (
+                  <span style={{ opacity: 0.8 }}>
+                    • {node.vulnerability.permissions.join(', ')}
+                  </span>
+                )}
               </div>
             )}
           </div>

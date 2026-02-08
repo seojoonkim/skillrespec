@@ -27,11 +27,21 @@ export interface UpdateItem {
   reason: string;
 }
 
+export interface SecurityItem {
+  id: string;
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  score: number;
+  reason: string;
+  action: string;
+  permissions?: string[];
+}
+
 export interface Recommendations {
   diagnosis: DiagnosisItem[];
   install: InstallItem[];
   remove: RemoveItem[];
   update: UpdateItem[];
+  security: SecurityItem[];
 }
 
 export const recommendations: Recommendations = {
@@ -122,6 +132,64 @@ export const recommendations: Recommendations = {
     { id: 'session-logs', from: 'v1.3.0', to: 'v1.3.2', reason: 'Performance patch' },
     { id: 'gifgrep', from: 'v1.0.0', to: 'v1.0.1', reason: 'Search fix' },
     { id: 'gog', from: 'v1.8.0', to: 'v1.8.2', reason: 'Auth refresh fix' },
+  ],
+  security: [
+    {
+      id: 'himalaya',
+      risk: 'high',
+      score: 70,
+      reason: 'Community source + email access + outdated',
+      action: 'Review permissions or find official alternative',
+      permissions: ['network', 'filesystem'],
+    },
+    {
+      id: 'notion',
+      risk: 'high',
+      score: 65,
+      reason: 'Major update pending + handles API keys & personal data',
+      action: 'Update to v3.0.0 immediately',
+      permissions: ['network'],
+    },
+    {
+      id: 'mcporter',
+      risk: 'high',
+      score: 60,
+      reason: 'Community source + code execution + major update needed',
+      action: 'Update to v1.0.0 or verify source',
+      permissions: ['network', 'code-execution'],
+    },
+    {
+      id: 'github',
+      risk: 'medium',
+      score: 50,
+      reason: 'Code execution + API tokens + major update available',
+      action: 'Update to v2.0.0 for security patches',
+      permissions: ['network', 'code-execution'],
+    },
+    {
+      id: 'gog',
+      risk: 'medium',
+      score: 45,
+      reason: 'Handles Google auth + API keys + personal info',
+      action: 'Review OAuth scopes regularly',
+      permissions: ['network'],
+    },
+    {
+      id: 'openhue',
+      risk: 'medium',
+      score: 40,
+      reason: 'Community source + handles API keys',
+      action: 'Verify community maintenance status',
+      permissions: ['network'],
+    },
+    {
+      id: 'web-artifacts',
+      risk: 'medium',
+      score: 40,
+      reason: 'Community source + major update needed',
+      action: 'Update to v2.0.0',
+      permissions: ['network'],
+    },
   ],
 };
 
