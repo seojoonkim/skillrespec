@@ -39,16 +39,16 @@ function StatBadge({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
-        padding: '4px 10px',
+        gap: '3px',
+        padding: '2px 6px',
         background: theme.colors.bgTertiary,
         borderRadius: theme.radius.sm,
         cursor: 'help',
       }}
     >
-      <span style={{ fontSize: '14px' }}>{icon}</span>
+      <span style={{ fontSize: '11px' }}>{icon}</span>
       <span style={{
-        fontSize: theme.fontSize.sm,
+        fontSize: theme.fontSize.xs,
         fontWeight: theme.fontWeight.semibold,
         color: accent ? theme.colors.accent : theme.colors.textPrimary,
         fontFamily: theme.fonts.mono,
@@ -73,42 +73,42 @@ function ViewToggle({
     <div style={{
       display: 'flex',
       background: theme.colors.bgTertiary,
-      borderRadius: theme.radius.md,
-      padding: '4px',
+      borderRadius: theme.radius.sm,
+      padding: '2px',
     }}>
       <button
         onClick={() => onChange('3d')}
         style={{
-          padding: '8px 16px',
+          padding: '4px 10px',
           background: mode === '3d' ? theme.colors.bgSecondary : 'transparent',
           border: mode === '3d' ? `1px solid ${theme.colors.border}` : '1px solid transparent',
           borderRadius: theme.radius.sm,
           color: mode === '3d' ? theme.colors.textPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
+          fontSize: theme.fontSize.xs,
           fontWeight: theme.fontWeight.medium,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '4px',
           transition: 'all 0.15s ease',
         }}
       >
-        🌐 3D View
+        🌐 3D
       </button>
       <button
         onClick={() => onChange('report')}
         style={{
-          padding: '8px 16px',
+          padding: '4px 10px',
           background: mode === 'report' ? theme.colors.bgSecondary : 'transparent',
           border: mode === 'report' ? `1px solid ${theme.colors.border}` : '1px solid transparent',
           borderRadius: theme.radius.sm,
           color: mode === 'report' ? theme.colors.textPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
+          fontSize: theme.fontSize.xs,
           fontWeight: theme.fontWeight.medium,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '4px',
           transition: 'all 0.15s ease',
         }}
       >
@@ -263,27 +263,27 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          COMPACT HEADER (single line, ~48px height)
+          COMPACT HEADER (single line, ~44px height)
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
-        height: isMobile ? '48px' : '52px',
-        padding: '0 16px',
+        height: isMobile ? '40px' : '44px',
+        padding: '0 12px',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '12px',
         flexShrink: 0,
       }}>
         {/* Logo + Title */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '6px',
         }}>
-          <span style={{ fontSize: '20px' }}>⚔️</span>
+          <span style={{ fontSize: '16px' }}>⚔️</span>
           <span style={{
-            fontSize: theme.fontSize.md,
+            fontSize: theme.fontSize.sm,
             fontWeight: theme.fontWeight.bold,
             color: theme.colors.textPrimary,
             letterSpacing: '-0.01em',
@@ -295,17 +295,17 @@ export default function App() {
         {/* Separator */}
         <span style={{ 
           width: '1px', 
-          height: '20px', 
+          height: '16px', 
           background: theme.colors.border 
         }} />
 
         {/* Target + Date */}
         <span style={{
-          fontSize: theme.fontSize.sm,
+          fontSize: theme.fontSize.xs,
           color: theme.colors.textMuted,
         }}>
           <span style={{ color: theme.colors.textSecondary }}>Simon</span>
-          <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>
+          <span style={{ margin: '0 4px', opacity: 0.5 }}>·</span>
           {dateStr}
         </span>
 
@@ -314,12 +314,12 @@ export default function App() {
           <>
             <span style={{ 
               width: '1px', 
-              height: '20px', 
+              height: '16px', 
               background: theme.colors.border 
             }} />
             <div style={{
               display: 'flex',
-              gap: '8px',
+              gap: '6px',
             }}>
               <StatBadge 
                 value={`${healthScore}%`}
@@ -352,34 +352,34 @@ export default function App() {
           <button
             onClick={() => setShowReport(true)}
             style={{
-              padding: '6px 12px',
+              padding: '4px 8px',
               background: 'transparent',
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.md,
+              borderRadius: theme.radius.sm,
               color: theme.colors.textSecondary,
-              fontSize: theme.fontSize.xs,
+              fontSize: '11px',
               fontWeight: theme.fontWeight.medium,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '3px',
             }}
           >
-            📄 Report
+            📄 Full
           </button>
         )}
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA - 3 Column Layout (Desktop + Tablet)
+          MAIN CONTENT AREA - 3 Column Layout (Desktop + Tablet: 600px+)
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         flex: 1,
         display: 'grid',
         gridTemplateColumns: isDesktop 
-          ? '200px 1fr 320px' 
+          ? '180px 1fr 300px' 
           : isTablet 
-            ? '160px 1fr 260px' 
+            ? '140px 1fr 260px' 
             : '1fr',
         overflow: 'hidden',
       }}>

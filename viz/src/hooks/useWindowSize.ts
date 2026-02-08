@@ -9,12 +9,16 @@ export interface WindowSize {
 }
 
 export function useWindowSize(): WindowSize {
-  const [size, setSize] = useState<WindowSize>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800,
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
+  const [size, setSize] = useState<WindowSize>(() => {
+    const width = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const height = typeof window !== 'undefined' ? window.innerHeight : 800;
+    return {
+      width,
+      height,
+      isMobile: width < 600,
+      isTablet: width >= 600 && width < 1200,
+      isDesktop: width >= 1200,
+    };
   });
 
   useEffect(() => {
