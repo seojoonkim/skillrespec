@@ -104,18 +104,24 @@ export const recommendations: Recommendations = {
     },
   ],
   update: [
-    { 
-      id: 'prompt-guard', 
-      from: 'v2.8', 
-      to: 'v3.0', 
-      reason: 'New attack patterns 50+ added' 
-    },
-    { 
-      id: 'frontend-design', 
-      from: 'v1.2', 
-      to: 'v2.0', 
-      reason: 'Tailwind v4 support' 
-    },
+    { id: 'prompt-guard', from: 'v2.8.0', to: 'v3.0.0', reason: 'New attack patterns 50+ added' },
+    { id: 'github', from: 'v1.2.0', to: 'v2.0.0', reason: 'Major API overhaul, new features' },
+    { id: 'himalaya', from: 'v0.9.0', to: 'v1.0.0', reason: 'Stable release with breaking changes' },
+    { id: 'mcporter', from: 'v0.5.0', to: 'v1.0.0', reason: 'Production ready release' },
+    { id: 'web-artifacts', from: 'v1.0.0', to: 'v2.0.0', reason: 'New component system' },
+    { id: 'notion', from: 'v2.3.0', to: 'v3.0.0', reason: 'Database API v2 support' },
+    { id: 'discord', from: 'v2.1.0', to: 'v2.3.0', reason: 'New slash commands' },
+    { id: 'coding-agent', from: 'v3.1.0', to: 'v3.2.0', reason: 'Performance improvements' },
+    { id: 'oracle', from: 'v2.0.0', to: 'v2.1.0', reason: 'New prediction models' },
+    { id: 'theme-factory', from: 'v1.0.0', to: 'v1.2.0', reason: 'New themes added' },
+    { id: 'spotify', from: 'v2.0.0', to: 'v2.1.0', reason: 'Playlist management' },
+    { id: 'things', from: 'v1.2.0', to: 'v1.3.0', reason: 'Tags support' },
+    { id: 'pptx', from: 'v1.0.0', to: 'v1.1.0', reason: 'Chart support' },
+    { id: 'imsg', from: 'v1.0.0', to: 'v1.0.3', reason: 'Bug fixes' },
+    { id: 'skill-creator', from: 'v1.8.0', to: 'v1.8.5', reason: 'Template updates' },
+    { id: 'session-logs', from: 'v1.3.0', to: 'v1.3.2', reason: 'Performance patch' },
+    { id: 'gifgrep', from: 'v1.0.0', to: 'v1.0.1', reason: 'Search fix' },
+    { id: 'gog', from: 'v1.8.0', to: 'v1.8.2', reason: 'Auth refresh fix' },
   ],
 };
 

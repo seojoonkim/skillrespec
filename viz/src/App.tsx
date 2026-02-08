@@ -283,7 +283,16 @@ export default function App() {
           background: theme.colors.border,
         }} />
 
-        {/* Target + Date */}
+        {/* Spacer (left) */}
+        <div style={{ flex: 1 }} />
+
+        {/* View Mode Toggle (CENTERED) */}
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+        {/* Spacer (right) */}
+        <div style={{ flex: 1 }} />
+
+        {/* Target + Date (right side) */}
         <span style={{
           fontSize: theme.fontSize.sm,
           color: theme.colors.textMuted,
@@ -300,12 +309,6 @@ export default function App() {
           <span style={{ opacity: 0.4 }}>·</span>
           <span>{dateStr}</span>
         </span>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* View Mode Toggle */}
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
