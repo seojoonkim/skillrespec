@@ -10,10 +10,16 @@ import LoadingScreen from './components/LoadingScreen';
 import ReportView from './components/ReportView';
 import AnalyzePage from './pages/AnalyzePage';
 import ResultsPage from './pages/ResultsPage';
+import SearchBar from './components/SearchBar';
+import ToolNodes, { ToolConnectionLines } from './components/ToolNodes';
+import HealthDashboard from './components/HealthDashboard';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
+import { buildToolGraph } from './lib/toolDependencies';
+import { filterSkillNodes } from './lib/search';
+import { calculateDashboardHealth } from './lib/healthScore';
 
 // ═══════════════════════════════════════════════════════════
 // Router - Simple hash-based routing
@@ -197,6 +203,9 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [loading, setLoading] = useState(true);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'categories' | 'recommendations'>('none');
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showTools, setShowTools] = useState(false);
+  const [leftPanelTab, setLeftPanelTab] = useState<'categories' | 'health'>('categories');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
 
@@ -213,11 +222,18 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
     };
   }, [data]);
 
-  const healthScore = useMemo(() => {
-    if (!data) return 0;
-    const balance = data.metrics?.categoryBalance || 0.5;
-    const depth = data.metrics?.avgDepth || 1;
-    return Math.round((balance * 40 + Math.min(depth / 3, 1) * 30 + 30) * 10) / 10;
+  // Calculate health using new health score system
+  const healthData = useMemo(() => {
+    if (!data) return { averageScore: 0, averageGrade: 'F' as const };
+    return calculateDashboardHealth(data.nodes);
+  }, [data]);
+
+  const healthScore = healthData.averageScore;
+
+  // Build tool dependency graph
+  const toolGraph = useMemo(() => {
+    if (!data) return { toolNodes: [], toolEdges: [] };
+    return buildToolGraph(data.nodes);
   }, [data]);
 
   useEffect(() => {
@@ -256,15 +272,21 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   if (loading) return <LoadingScreen />;
   if (!data) return <LoadingScreen error="Failed to load skill data" />;
 
-  const filteredNodes = selectedCategory
+  // Filter by category first
+  let filteredNodes = selectedCategory
     ? data.nodes.filter(n => n.category === selectedCategory)
     : data.nodes;
+  
+  // Then filter by search query
+  if (searchQuery.trim()) {
+    filteredNodes = filterSkillNodes(filteredNodes, searchQuery);
+  }
 
-  const filteredEdges = selectedCategory
+  const filteredEdges = selectedCategory || searchQuery
     ? data.edges.filter(e => {
-        const sourceNode = data.nodes.find(n => n.id === e.source);
-        const targetNode = data.nodes.find(n => n.id === e.target);
-        return sourceNode?.category === selectedCategory || targetNode?.category === selectedCategory;
+        const sourceNode = filteredNodes.find(n => n.id === e.source);
+        const targetNode = filteredNodes.find(n => n.id === e.target);
+        return sourceNode !== undefined || targetNode !== undefined;
       })
     : data.edges;
 
@@ -346,6 +368,42 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
           🔍 Analyze Your Skills
         </button>
 
+        {/* Search Bar */}
+        {!isMobile && (
+          <SearchBar
+            onSearch={setSearchQuery}
+            onSelectSkill={(id) => {
+              const node = data.nodes.find(n => n.id === id);
+              if (node) setSelectedNode(node);
+            }}
+            placeholder="Search skills..."
+          />
+        )}
+
+        {/* Tools Toggle */}
+        {!isMobile && (
+          <button
+            onClick={() => setShowTools(!showTools)}
+            style={{
+              padding: '7px 12px',
+              background: showTools ? theme.colors.bgElevated : 'transparent',
+              border: `1px solid ${showTools ? theme.colors.accent : theme.colors.border}`,
+              borderRadius: theme.radius.full,
+              color: showTools ? theme.colors.accent : theme.colors.textMuted,
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.medium,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: theme.transitions.fast,
+              fontFamily: theme.fonts.sans,
+            }}
+          >
+            🔧 Tools
+          </button>
+        )}
+
         {/* Spacer (left) */}
         <div style={{ flex: 1 }} />
 
@@ -394,7 +452,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
             overflow: 'hidden',
             minHeight: 0,
           }}>
-            {/* LEFT COLUMN: Categories */}
+            {/* LEFT COLUMN: Categories / Health */}
             {!isMobile && (
               <div style={{
                 background: theme.colors.bgSecondary,
@@ -403,18 +461,77 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                 display: 'flex',
                 flexDirection: 'column',
               }}>
-                <CategoryLegend 
-                  clusters={data.clusters}
-                  selectedCategory={selectedCategory}
-                  onSelect={setSelectedCategory}
-                  compact={isTablet}
-                  embedded
-                  healthScore={healthScore}
-                  nodes={data.nodes}
-                  edges={data.edges}
-                  onSelectNode={setSelectedNode}
-                  selectedNode={selectedNode}
-                />
+                {/* Tab Switcher */}
+                <div style={{
+                  display: 'flex',
+                  borderBottom: `1px solid ${theme.colors.border}`,
+                  background: theme.colors.bgTertiary,
+                }}>
+                  <button
+                    onClick={() => setLeftPanelTab('categories')}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: leftPanelTab === 'categories' ? theme.colors.bgSecondary : 'transparent',
+                      border: 'none',
+                      borderBottom: leftPanelTab === 'categories' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
+                      color: leftPanelTab === 'categories' ? theme.colors.textPrimary : theme.colors.textMuted,
+                      fontSize: theme.fontSize.sm,
+                      fontWeight: theme.fontWeight.medium,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontFamily: theme.fonts.sans,
+                    }}
+                  >
+                    📁 Categories
+                  </button>
+                  <button
+                    onClick={() => setLeftPanelTab('health')}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: leftPanelTab === 'health' ? theme.colors.bgSecondary : 'transparent',
+                      border: 'none',
+                      borderBottom: leftPanelTab === 'health' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
+                      color: leftPanelTab === 'health' ? theme.colors.textPrimary : theme.colors.textMuted,
+                      fontSize: theme.fontSize.sm,
+                      fontWeight: theme.fontWeight.medium,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontFamily: theme.fonts.sans,
+                    }}
+                  >
+                    💊 Health
+                  </button>
+                </div>
+                
+                {/* Tab Content */}
+                <div style={{ flex: 1, overflow: 'auto' }}>
+                  {leftPanelTab === 'categories' ? (
+                    <CategoryLegend 
+                      clusters={data.clusters}
+                      selectedCategory={selectedCategory}
+                      onSelect={setSelectedCategory}
+                      compact={isTablet}
+                      embedded
+                      healthScore={healthScore}
+                      nodes={data.nodes}
+                      edges={data.edges}
+                      onSelectNode={setSelectedNode}
+                      selectedNode={selectedNode}
+                    />
+                  ) : (
+                    <div style={{ padding: '12px' }}>
+                      <HealthDashboard nodes={data.nodes} />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
@@ -463,6 +580,23 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                       selectedNode={selectedNode}
                       hoveredNode={hoveredNode}
                     />
+                    
+                    {/* Tool Dependency Nodes */}
+                    {showTools && (
+                      <>
+                        <ToolNodes 
+                          tools={toolGraph.toolNodes}
+                          showLabels={true}
+                          opacity={0.8}
+                        />
+                        <ToolConnectionLines
+                          edges={toolGraph.toolEdges}
+                          skillNodes={filteredNodes}
+                          toolNodes={toolGraph.toolNodes}
+                          opacity={0.25}
+                        />
+                      </>
+                    )}
                     
                     <OrbitControls 
                       enablePan={!isMobile}
