@@ -677,7 +677,7 @@ export default function ReportView({ data }: ReportViewProps) {
                       padding: '12px 16px',
                       fontSize: theme.fontSize.sm,
                       fontFamily: theme.fonts.mono,
-                      color: isHeavy ? theme.colors.warning : theme.colors.textSecondary,
+                      color: theme.colors.textSecondary,
                     }}>
                       ~{node.tokens.toLocaleString()}
                     </td>
@@ -685,7 +685,7 @@ export default function ReportView({ data }: ReportViewProps) {
                       padding: '12px 16px',
                       fontSize: theme.fontSize.sm,
                       fontFamily: theme.fonts.mono,
-                      color: hasHighOverlap ? theme.colors.warning : theme.colors.textSecondary,
+                      color: theme.colors.textSecondary,
                     }}>
                       {node.connections.length}
                     </td>
@@ -695,12 +695,12 @@ export default function ReportView({ data }: ReportViewProps) {
                           display: 'inline-block',
                           padding: '2px 8px',
                           fontSize: theme.fontSize.xs,
-                          color: theme.colors.warning,
-                          background: `${theme.colors.warning}15`,
+                          color: '#a78bfa',
+                          background: 'rgba(167, 139, 250, 0.15)',
                           borderRadius: theme.radius.sm,
                           marginRight: '4px',
                         }}>
-                          Heavy
+                          Comprehensive
                         </span>
                       )}
                       {hasHighOverlap && (
@@ -717,10 +717,14 @@ export default function ReportView({ data }: ReportViewProps) {
                       )}
                       {!isHeavy && !hasHighOverlap && (
                         <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
                           fontSize: theme.fontSize.xs,
                           color: theme.colors.textMuted,
+                          background: `${theme.colors.textMuted}10`,
+                          borderRadius: theme.radius.sm,
                         }}>
-                          —
+                          Standard
                         </span>
                       )}
                     </td>
