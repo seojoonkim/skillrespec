@@ -1,5 +1,12 @@
 import { theme } from '../styles/theme';
-import type { SkillCluster } from '../types';
+import type { SkillCluster, SkillEdge, SkillNode } from '../types';
+
+interface ConnectionStats {
+  totalConnections: number;
+  density: 'high' | 'medium' | 'low';
+  isolatedCount: number;
+  hubSkill: { name: string; count: number } | null;
+}
 
 interface CategoryLegendProps {
   clusters: SkillCluster[];
@@ -8,6 +15,45 @@ interface CategoryLegendProps {
   compact?: boolean;
   mobile?: boolean;
   embedded?: boolean;
+  healthScore?: number;
+  nodes?: SkillNode[];
+  edges?: SkillEdge[];
+}
+
+function calculateConnectionStats(nodes: SkillNode[], edges: SkillEdge[]): ConnectionStats {
+  const totalConnections = edges.length;
+  const nodeCount = nodes.length;
+  
+  // Calculate density
+  const densityRatio = nodeCount > 0 ? totalConnections / nodeCount : 0;
+  let density: 'high' | 'medium' | 'low';
+  if (densityRatio >= 1.5) density = 'high';
+  else if (densityRatio >= 0.8) density = 'medium';
+  else density = 'low';
+  
+  // Count connections per node
+  const connectionCounts: Record<string, number> = {};
+  nodes.forEach(n => { connectionCounts[n.id] = 0; });
+  edges.forEach(e => {
+    connectionCounts[e.source] = (connectionCounts[e.source] || 0) + 1;
+    connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1;
+  });
+  
+  // Find isolated nodes
+  const isolatedCount = Object.values(connectionCounts).filter(c => c === 0).length;
+  
+  // Find hub skill
+  let hubSkill: { name: string; count: number } | null = null;
+  let maxConnections = 0;
+  Object.entries(connectionCounts).forEach(([id, count]) => {
+    if (count > maxConnections) {
+      maxConnections = count;
+      const node = nodes.find(n => n.id === id);
+      hubSkill = { name: node?.name || id, count };
+    }
+  });
+  
+  return { totalConnections, density, isolatedCount, hubSkill };
 }
 
 export default function CategoryLegend({ 
@@ -17,9 +63,15 @@ export default function CategoryLegend({
   compact = false,
   mobile = false,
   embedded = false,
+  healthScore,
+  nodes = [],
+  edges = [],
 }: CategoryLegendProps) {
   const totalSkills = clusters.reduce((sum, c) => sum + c.skills.length, 0);
   const sortedClusters = [...clusters].sort((a, b) => b.skills.length - a.skills.length);
+  
+  const connectionStats = calculateConnectionStats(nodes, edges);
+  const hasStats = healthScore !== undefined && nodes.length > 0;
 
   // Mobile layout
   if (mobile) {
@@ -141,9 +193,95 @@ export default function CategoryLegend({
 
   return (
     <div style={containerStyle}>
+      {/* Health & Connection Stats */}
+      {hasStats && (
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: `1px solid ${theme.colors.border}`,
+        }}>
+          {/* Health */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '4px',
+            }}>
+              <span style={{ fontSize: '14px' }}>❤️</span>
+              <span style={{
+                fontSize: theme.fontSize.md,
+                fontWeight: theme.fontWeight.bold,
+                color: healthScore! >= 65 ? theme.colors.success : healthScore! >= 50 ? theme.colors.warning : theme.colors.error,
+                fontFamily: theme.fonts.mono,
+              }}>
+                {Math.round(healthScore!)}%
+              </span>
+              <span style={{
+                fontSize: theme.fontSize.sm,
+                fontWeight: theme.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}>
+                Health
+              </span>
+            </div>
+            <p style={{
+              margin: 0,
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              lineHeight: 1.4,
+            }}>
+              전체 스킬셋 건강도 (중복도, 균형, 최신성)
+            </p>
+          </div>
+          
+          {/* Connections */}
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '4px',
+            }}>
+              <span style={{ fontSize: '14px' }}>🔗</span>
+              <span style={{
+                fontSize: theme.fontSize.md,
+                fontWeight: theme.fontWeight.bold,
+                color: theme.colors.accent,
+                fontFamily: theme.fonts.mono,
+              }}>
+                {connectionStats.totalConnections}
+              </span>
+              <span style={{
+                fontSize: theme.fontSize.sm,
+                fontWeight: theme.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}>
+                Connections
+              </span>
+            </div>
+            <p style={{
+              margin: 0,
+              fontSize: theme.fontSize.xs,
+              color: theme.colors.textMuted,
+              lineHeight: 1.4,
+            }}>
+              스킬 간 연결 수 · 밀도{' '}
+              <span style={{ 
+                color: connectionStats.density === 'high' ? theme.colors.success : 
+                       connectionStats.density === 'medium' ? theme.colors.warning : 
+                       theme.colors.error 
+              }}>
+                {connectionStats.density === 'high' ? '높음' : 
+                 connectionStats.density === 'medium' ? '중간' : '낮음'}
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
-        padding: '16px',
+        padding: '12px 16px',
         borderBottom: `1px solid ${theme.colors.border}`,
         display: 'flex',
         alignItems: 'center',

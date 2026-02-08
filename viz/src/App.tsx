@@ -312,6 +312,9 @@ export default function App() {
                   onSelect={setSelectedCategory}
                   compact={isTablet}
                   embedded
+                  healthScore={healthScore}
+                  nodes={data.nodes}
+                  edges={data.edges}
                 />
               </div>
             )}
