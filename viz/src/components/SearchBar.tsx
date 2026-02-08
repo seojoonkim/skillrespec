@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════
 // Search Bar - Natural language fuzzy search for skills
+// Refined glass morphism design
 // ═══════════════════════════════════════════════════════════
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { theme } from '../styles/theme';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { theme, glass, glassElevated } from '../styles/theme';
 import { searchSkills, type SearchResult } from '../lib/search';
 
 interface SearchBarProps {
@@ -19,12 +20,12 @@ export default function SearchBar({
 }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
     onSearch(value);
@@ -40,7 +41,6 @@ export default function SearchBar({
     }
   }, [onSearch]);
 
-  // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen) return;
 
@@ -68,7 +68,6 @@ export default function SearchBar({
     }
   }, [isOpen, results, selectedIndex, onSelectSkill]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -90,32 +89,28 @@ export default function SearchBar({
   return (
     <div 
       ref={dropdownRef}
-      style={{ 
-        position: 'relative',
-        width: '100%',
-        maxWidth: '300px',
-      }}
+      className="relative w-full max-w-xs"
     >
       {/* Search Input */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        background: theme.colors.bgTertiary,
-        borderRadius: theme.radius.full,
-        border: `1px solid ${isOpen ? theme.colors.accent : theme.colors.border}`,
-        padding: '0 12px',
-        transition: theme.transitions.fast,
-      }}>
+      <div 
+        className="flex items-center gap-2 px-3 rounded-lg transition-all duration-150"
+        style={{
+          background: theme.colors.bgTertiary,
+          border: `1px solid ${isFocused || isOpen ? theme.colors.accent : theme.colors.border}`,
+          boxShadow: isFocused ? `0 0 0 3px ${theme.colors.accentSubtle}` : 'none',
+        }}
+      >
         {/* Search Icon */}
         <svg 
           width="14" 
           height="14" 
           viewBox="0 0 24 24" 
           fill="none" 
-          stroke={theme.colors.textMuted}
+          stroke={isFocused ? theme.colors.accent : theme.colors.textMuted}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="shrink-0 transition-colors duration-150"
         >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
@@ -127,18 +122,17 @@ export default function SearchBar({
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => results.length > 0 && setIsOpen(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            results.length > 0 && setIsOpen(true);
+          }}
+          onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
+          className="flex-1 bg-transparent border-none outline-none py-2 w-full"
           style={{
-            flex: 1,
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
             color: theme.colors.textPrimary,
             fontSize: theme.fontSize.sm,
             fontFamily: theme.fonts.sans,
-            padding: '8px 10px',
-            width: '100%',
           }}
         />
 
@@ -146,15 +140,7 @@ export default function SearchBar({
         {query && (
           <button
             onClick={clearSearch}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="p-1 rounded hover:bg-white/5 transition-colors duration-100"
           >
             <svg
               width="12"
@@ -173,34 +159,28 @@ export default function SearchBar({
 
         {/* Keyboard shortcut hint */}
         {!query && (
-          <span style={{
-            fontSize: theme.fontSize.xs,
-            color: theme.colors.textSubtle,
-            background: theme.colors.bgHover,
-            padding: '2px 6px',
-            borderRadius: theme.radius.sm,
-            fontFamily: theme.fonts.mono,
-          }}>
+          <kbd 
+            className="shrink-0 px-1.5 py-0.5 rounded text-2xs font-mono"
+            style={{
+              background: theme.colors.bgSurface,
+              color: theme.colors.textSubtle,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
             ⌘K
-          </span>
+          </kbd>
         )}
       </div>
 
       {/* Dropdown Results */}
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 8px)',
-          left: 0,
-          right: 0,
-          background: theme.colors.bgSecondary,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.radius.lg,
-          boxShadow: theme.shadows.lg,
-          overflow: 'hidden',
-          zIndex: 1000,
-        }}>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <div 
+          className="absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-50 animate-scale-in"
+          style={{
+            ...glassElevated,
+          }}
+        >
+          <div className="max-h-80 overflow-y-auto">
             {results.map((result, index) => (
               <div
                 key={result.item.id}
@@ -209,71 +189,53 @@ export default function SearchBar({
                   setQuery(result.item.name);
                   setIsOpen(false);
                 }}
+                className="px-3 py-2.5 cursor-pointer transition-colors duration-100"
                 style={{
-                  padding: '10px 14px',
-                  cursor: 'pointer',
                   background: index === selectedIndex 
                     ? theme.colors.bgActive 
                     : 'transparent',
                   borderBottom: index < results.length - 1 
-                    ? `1px solid ${theme.colors.borderLight}` 
+                    ? `1px solid ${theme.colors.borderSubtle}` 
                     : 'none',
-                  transition: theme.transitions.fast,
                 }}
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
                     {/* Skill Name */}
-                    <div style={{
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.medium,
-                      color: theme.colors.textPrimary,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
+                    <div 
+                      className="text-sm font-medium truncate"
+                      style={{ color: theme.colors.textPrimary }}
+                    >
                       {result.item.name}
                     </div>
                     
                     {/* Description */}
                     {result.item.description && (
-                      <div style={{
-                        fontSize: theme.fontSize.xs,
-                        color: theme.colors.textMuted,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        marginTop: '2px',
-                      }}>
+                      <div 
+                        className="text-xs truncate mt-0.5"
+                        style={{ color: theme.colors.textMuted }}
+                      >
                         {result.item.description}
                       </div>
                     )}
                   </div>
 
                   {/* Category Badge */}
-                  <span style={{
-                    fontSize: theme.fontSize.xs,
-                    color: theme.categoryColors[result.item.category] || theme.colors.textMuted,
-                    background: theme.colors.bgTertiary,
-                    padding: '2px 8px',
-                    borderRadius: theme.radius.full,
-                    flexShrink: 0,
-                  }}>
+                  <span 
+                    className="shrink-0 px-2 py-0.5 rounded-full text-2xs font-medium"
+                    style={{
+                      color: theme.categoryColors[result.item.category] || theme.colors.textMuted,
+                      background: `${theme.categoryColors[result.item.category]}15` || theme.colors.bgTertiary,
+                    }}
+                  >
                     {result.item.category}
                   </span>
 
                   {/* Match Score */}
-                  <span style={{
-                    fontSize: theme.fontSize.xs,
-                    color: theme.colors.textSubtle,
-                    fontFamily: theme.fonts.mono,
-                    flexShrink: 0,
-                  }}>
+                  <span 
+                    className="shrink-0 font-mono text-2xs"
+                    style={{ color: theme.colors.textSubtle }}
+                  >
                     {Math.round(result.score * 100)}%
                   </span>
                 </div>
@@ -282,28 +244,26 @@ export default function SearchBar({
           </div>
 
           {/* Footer */}
-          <div style={{
-            padding: '8px 14px',
-            borderTop: `1px solid ${theme.colors.border}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span style={{
-              fontSize: theme.fontSize.xs,
-              color: theme.colors.textSubtle,
-            }}>
+          <div 
+            className="px-3 py-2 flex justify-between items-center"
+            style={{
+              borderTop: `1px solid ${theme.colors.border}`,
+              background: theme.colors.bgTertiary,
+            }}
+          >
+            <span 
+              className="text-2xs"
+              style={{ color: theme.colors.textSubtle }}
+            >
               {results.length} results
             </span>
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              fontSize: theme.fontSize.xs,
-              color: theme.colors.textSubtle,
-            }}>
-              <span>↑↓ navigate</span>
-              <span>↵ select</span>
-              <span>esc close</span>
+            <div 
+              className="flex gap-3 text-2xs"
+              style={{ color: theme.colors.textSubtle }}
+            >
+              <span><kbd className="font-mono">↑↓</kbd> navigate</span>
+              <span><kbd className="font-mono">↵</kbd> select</span>
+              <span><kbd className="font-mono">esc</kbd> close</span>
             </div>
           </div>
         </div>

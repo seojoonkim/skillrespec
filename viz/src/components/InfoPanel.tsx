@@ -1,5 +1,9 @@
+// ═══════════════════════════════════════════════════════════
+// Info Panel - Skill details with glass morphism
+// ═══════════════════════════════════════════════════════════
+
 import { useMemo, useState } from 'react';
-import { theme } from '../styles/theme';
+import { theme, glass } from '../styles/theme';
 import ReviewsSection from './ReviewsSection';
 import type { SkillNode, SkillEdge, VizMetrics } from '../types';
 
@@ -19,32 +23,24 @@ function StatItem({ label, value, color, subtext }: {
   subtext?: string;
 }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{
-        fontSize: theme.fontSize.xl,
-        fontWeight: theme.fontWeight.bold,
-        color: color || theme.colors.textPrimary,
-        fontFamily: theme.fonts.mono,
-        letterSpacing: '-0.02em',
-      }}>
+    <div className="text-center">
+      <div 
+        className="text-xl font-bold font-mono tracking-tight"
+        style={{ color: color || theme.colors.textPrimary }}
+      >
         {value}
       </div>
-      <div style={{
-        fontSize: theme.fontSize.xs,
-        color: theme.colors.textMuted,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        marginTop: '4px',
-        fontWeight: theme.fontWeight.medium,
-      }}>
+      <div 
+        className="text-2xs uppercase tracking-widest mt-1 font-medium"
+        style={{ color: theme.colors.textMuted }}
+      >
         {label}
       </div>
       {subtext && (
-        <div style={{
-          fontSize: '10px',
-          color: theme.colors.textSubtle,
-          marginTop: '2px',
-        }}>
+        <div 
+          className="text-2xs mt-0.5"
+          style={{ color: theme.colors.textSubtle }}
+        >
           {subtext}
         </div>
       )}
@@ -60,45 +56,36 @@ function SimilarSkillChip({ name, similarity, color }: {
   const isHigh = similarity > 70;
   
   return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '6px 12px',
-      background: theme.colors.bgTertiary,
-      border: `1px solid ${isHigh ? theme.colors.warning : theme.colors.border}`,
-      borderRadius: theme.radius.full,
-      fontSize: theme.fontSize.xs,
-      transition: theme.transitions.fast,
-    }}>
-      <span style={{
-        width: '6px',
-        height: '6px',
-        borderRadius: '50%',
-        background: color,
-        boxShadow: `0 0 4px ${color}`,
-      }} />
-      <span style={{ 
-        color: theme.colors.textSecondary,
-        maxWidth: '120px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
+    <div 
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all duration-100"
+      style={{
+        background: theme.colors.bgTertiary,
+        border: `1px solid ${isHigh ? theme.colors.warningMuted : theme.colors.border}`,
+      }}
+    >
+      <span 
+        className="w-1.5 h-1.5 rounded-full"
+        style={{
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+        }}
+      />
+      <span 
+        className="max-w-28 truncate"
+        style={{ color: theme.colors.textSecondary }}
+      >
         {name}
       </span>
-      <span style={{
-        fontWeight: theme.fontWeight.semibold,
-        color: isHigh ? theme.colors.warning : theme.colors.textMuted,
-        fontFamily: theme.fonts.mono,
-      }}>
+      <span 
+        className="font-semibold font-mono"
+        style={{ color: isHigh ? theme.colors.warning : theme.colors.textMuted }}
+      >
         {similarity}%
       </span>
     </div>
   );
 }
 
-// Bottom fixed panel - clean, modern design
 export default function InfoPanel({ node, allNodes, edges, onClose, mobile = false }: InfoPanelProps) {
   const [showReviews, setShowReviews] = useState(false);
   
@@ -125,114 +112,91 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
     };
   }, [node, allNodes, edges]);
 
-  // Empty state - elegant placeholder
+  // Empty state
   if (!node) {
     return (
-      <div style={{
-        height: mobile ? '100px' : '120px',
-        background: `linear-gradient(180deg, ${theme.colors.bgSecondary} 0%, ${theme.colors.bgPrimary} 100%)`,
-        borderTop: `1px solid ${theme.colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: theme.colors.textMuted,
-        fontSize: theme.fontSize.sm,
-        fontFamily: theme.fonts.sans,
-        gap: '8px',
-      }}>
-        <span style={{ opacity: 0.6, fontSize: '20px' }}>🎯</span>
-        <span style={{ opacity: 0.6 }}>Click a skill node to view details</span>
+      <div 
+        className="flex items-center justify-center gap-3"
+        style={{
+          height: mobile ? '100px' : '120px',
+          ...glass,
+          borderRadius: 0,
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderBottom: 'none',
+          color: theme.colors.textMuted,
+          fontFamily: theme.fonts.sans,
+        }}
+      >
+        <span className="text-xl opacity-50">◎</span>
+        <span className="text-sm opacity-60">Click a skill node to view details</span>
       </div>
     );
   }
 
   const nodeColor = node.color || theme.categoryColors[node.category] || theme.colors.accent;
 
-  // Active state - show skill info
   return (
-    <div style={{
-      minHeight: mobile ? '100px' : '120px',
-      background: `linear-gradient(180deg, ${theme.colors.bgSecondary} 0%, ${theme.colors.bgPrimary} 100%)`,
-      borderTop: `1px solid ${theme.colors.border}`,
-      display: 'flex',
-      fontFamily: theme.fonts.sans,
-      position: 'relative',
-      padding: '8px 0',
-    }}>
-      {/* Accent line at top */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '2px',
-        background: `linear-gradient(90deg, transparent, ${nodeColor}, transparent)`,
-        opacity: 0.6,
-      }} />
+    <div 
+      className="relative flex animate-fade-in"
+      style={{
+        minHeight: mobile ? '100px' : '120px',
+        ...glass,
+        borderRadius: 0,
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderBottom: 'none',
+        fontFamily: theme.fonts.sans,
+        padding: '8px 0',
+      }}
+    >
+      {/* Accent glow at top */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{
+          background: `linear-gradient(90deg, transparent 10%, ${nodeColor}80, transparent 90%)`,
+        }}
+      />
 
       {/* Left: Skill Name & Category */}
-      <div style={{
-        width: mobile ? '140px' : '220px',
-        padding: mobile ? '16px 20px' : '20px 24px',
-        borderRight: `1px solid ${theme.colors.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}>
+      <div 
+        className="flex flex-col justify-center shrink-0"
+        style={{
+          width: mobile ? '140px' : '220px',
+          padding: mobile ? '16px 20px' : '20px 24px',
+          borderRight: `1px solid ${theme.colors.border}`,
+        }}
+      >
+        <div className="flex items-center gap-2.5">
           <div
+            className="w-3 h-3 rounded-full shrink-0"
             style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
               background: nodeColor,
-              boxShadow: `0 0 10px ${nodeColor}`,
-              flexShrink: 0,
+              boxShadow: `0 0 12px ${nodeColor}`,
             }}
           />
-          <h2 style={{
-            fontSize: mobile ? theme.fontSize.md : theme.fontSize.lg,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-            margin: 0,
-            letterSpacing: '-0.01em',
-            lineHeight: 1.2,
-          }}>
+          <h2 
+            className="text-base font-semibold tracking-tight leading-tight"
+            style={{ color: theme.colors.textPrimary }}
+          >
             {node.name}
           </h2>
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginTop: '8px',
-        }}>
-          <span style={{
-            fontSize: theme.fontSize.xs,
-            color: theme.colors.textMuted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            fontWeight: theme.fontWeight.medium,
-          }}>
+        <div className="flex items-center gap-2 mt-2">
+          <span 
+            className="text-2xs uppercase tracking-wider font-medium"
+            style={{ color: theme.colors.textMuted }}
+          >
             {node.category}
           </span>
         </div>
       </div>
 
       {/* Center: Stats */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: mobile ? '32px' : '56px',
-        padding: '20px',
-      }}>
+      <div 
+        className="flex-1 flex items-center justify-center p-5"
+        style={{ gap: mobile ? '32px' : '56px' }}
+      >
         <StatItem 
           label="Tokens" 
           value={`~${node.tokens.toLocaleString()}`} 
@@ -253,30 +217,22 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
 
       {/* Right: Similar Skills */}
       {!mobile && connectedNodes.length > 0 && (
-        <div style={{
-          minWidth: '280px',
-          maxWidth: '400px',
-          padding: '12px 20px',
-          borderLeft: `1px solid ${theme.colors.border}`,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            fontSize: theme.fontSize.xs,
-            color: theme.colors.textMuted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '12px',
-            fontWeight: theme.fontWeight.semibold,
-          }}>
+        <div 
+          className="flex flex-col justify-center"
+          style={{
+            minWidth: '280px',
+            maxWidth: '400px',
+            padding: '12px 20px',
+            borderLeft: `1px solid ${theme.colors.border}`,
+          }}
+        >
+          <div 
+            className="text-2xs uppercase tracking-widest mb-3 font-semibold"
+            style={{ color: theme.colors.textMuted }}
+          >
             Similar Skills
           </div>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-          }}>
+          <div className="flex flex-wrap gap-2">
             {connectedNodes.slice(0, 3).map(({ node: n, weight }) => (
               <SimilarSkillChip
                 key={n.id}
@@ -290,58 +246,32 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
       )}
 
       {/* Top buttons */}
-      <div style={{
-        position: 'absolute',
-        top: '12px',
-        right: '16px',
-        display: 'flex',
-        gap: '8px',
-      }}>
+      <div className="absolute top-3 right-4 flex gap-2">
         {/* Reviews toggle */}
         {!mobile && (
           <button
             onClick={() => setShowReviews(!showReviews)}
+            className="px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-all duration-100"
             style={{
-              background: showReviews ? theme.colors.bgElevated : theme.colors.bgTertiary,
-              border: `1px solid ${showReviews ? theme.colors.textMuted : theme.colors.border}`,
-              borderRadius: theme.radius.full,
+              background: showReviews ? theme.colors.bgSurface : theme.colors.bgTertiary,
+              border: `1px solid ${showReviews ? theme.colors.borderHover : theme.colors.border}`,
               color: showReviews ? theme.colors.textPrimary : theme.colors.textMuted,
-              fontSize: '12px',
-              cursor: 'pointer',
-              padding: '6px 10px',
-              transition: theme.transitions.fast,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
+              fontFamily: theme.fonts.sans,
             }}
           >
-            ⭐ Reviews
+            <span>⭐</span>
+            Reviews
           </button>
         )}
         
         {/* Close button */}
         <button
           onClick={onClose}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all duration-100 hover:border-dark-600 hover:text-white"
           style={{
             background: theme.colors.bgTertiary,
             border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radius.full,
             color: theme.colors.textMuted,
-            fontSize: '14px',
-            cursor: 'pointer',
-            padding: '6px 10px',
-            transition: theme.transitions.fast,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.borderHover;
-            e.currentTarget.style.color = theme.colors.textPrimary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.border;
-            e.currentTarget.style.color = theme.colors.textMuted;
           }}
         >
           ✕
@@ -350,21 +280,15 @@ export default function InfoPanel({ node, allNodes, edges, onClose, mobile = fal
       
       {/* Reviews Section - Expandable */}
       {showReviews && !mobile && (
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: 0,
-          right: 0,
-          maxHeight: '300px',
-          overflow: 'auto',
-          background: theme.colors.bgSecondary,
-          borderTop: `1px solid ${theme.colors.border}`,
-          borderLeft: `1px solid ${theme.colors.border}`,
-          borderRight: `1px solid ${theme.colors.border}`,
-          borderTopLeftRadius: theme.radius.lg,
-          borderTopRightRadius: theme.radius.lg,
-          padding: '16px',
-        }}>
+        <div 
+          className="absolute bottom-full left-0 right-0 max-h-72 overflow-auto rounded-t-xl animate-slide-down"
+          style={{
+            ...glass,
+            borderBottom: 'none',
+            borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
+            padding: '16px',
+          }}
+        >
           <ReviewsSection
             skillId={node.id}
             skillName={node.name}

@@ -23,7 +23,7 @@ import HistoryPanel from './components/HistoryPanel';
 import UpdatesPanel from './components/UpdatesPanel';
 import CreatePanel from './components/CreatePanel';
 import { useWindowSize } from './hooks/useWindowSize';
-import { theme } from './styles/theme';
+import { theme, glass, glassElevated } from './styles/theme';
 import type { VizData, SkillNode } from './types';
 import { generateDemoData } from './data/demoData';
 import { buildToolGraph } from './lib/toolDependencies';
@@ -41,7 +41,6 @@ function useRouter(): [Route, (path: string) => void] {
     const hash = window.location.hash;
     if (hash.startsWith('#/analyze')) return '/analyze';
     if (hash.startsWith('#/results')) return '/results';
-    // Check for encoded result data in hash (legacy format)
     if (hash.length > 10 && !hash.includes('/')) return '/results';
     return '/';
   };
@@ -58,8 +57,7 @@ function useRouter(): [Route, (path: string) => void] {
 
   const navigate = useCallback((path: string) => {
     if (path.startsWith('/results#')) {
-      // Special case: results with data
-      window.location.hash = path.slice(1); // Remove leading /
+      window.location.hash = path.slice(1);
     } else if (path === '/') {
       window.location.hash = '';
       setRoute('/');
@@ -77,7 +75,7 @@ function useRouter(): [Route, (path: string) => void] {
 type ViewMode = '3d' | 'report';
 
 // ═══════════════════════════════════════════════════════════
-// View Toggle Component - Modern pill style
+// View Toggle Component - Modern pill style with glass effect
 // ═══════════════════════════════════════════════════════════
 function ViewToggle({ 
   mode, 
@@ -87,60 +85,82 @@ function ViewToggle({
   onChange: (mode: ViewMode) => void;
 }) {
   return (
-    <div style={{
-      display: 'flex',
-      background: theme.colors.bgTertiary,
-      borderRadius: theme.radius.full,
-      padding: '3px',
-      border: `1px solid ${theme.colors.border}`,
-    }}>
-      <button
-        onClick={() => onChange('3d')}
-        style={{
-          padding: '7px 14px',
-          background: mode === '3d' 
-            ? `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`
-            : 'transparent',
-          border: 'none',
-          borderRadius: theme.radius.full,
-          color: mode === '3d' ? theme.colors.bgPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.semibold,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: theme.transitions.fast,
-          fontFamily: theme.fonts.sans,
-        }}
-      >
-        <span style={{ fontSize: '12px' }}>🌐</span>
-        Graph
-      </button>
-      <button
-        onClick={() => onChange('report')}
-        style={{
-          padding: '7px 14px',
-          background: mode === 'report'
-            ? `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`
-            : 'transparent',
-          border: 'none',
-          borderRadius: theme.radius.full,
-          color: mode === 'report' ? theme.colors.bgPrimary : theme.colors.textMuted,
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.semibold,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: theme.transitions.fast,
-          fontFamily: theme.fonts.sans,
-        }}
-      >
-        <span style={{ fontSize: '12px' }}>📋</span>
-        Report
-      </button>
+    <div 
+      className="flex p-1 rounded-full animate-fade-in"
+      style={{
+        background: theme.colors.bgTertiary,
+        border: `1px solid ${theme.colors.border}`,
+      }}
+    >
+      {[
+        { id: '3d' as ViewMode, icon: '◈', label: 'Graph' },
+        { id: 'report' as ViewMode, icon: '☰', label: 'Report' },
+      ].map(({ id, icon, label }) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          className="relative px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-2"
+          style={{
+            background: mode === id 
+              ? `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`
+              : 'transparent',
+            color: mode === id ? theme.colors.bgPrimary : theme.colors.textMuted,
+            fontFamily: theme.fonts.sans,
+            boxShadow: mode === id ? theme.shadows.glowSm : 'none',
+          }}
+        >
+          <span className="text-xs opacity-80">{icon}</span>
+          {label}
+        </button>
+      ))}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab Button Component
+// ═══════════════════════════════════════════════════════════
+function TabButton({ 
+  active, 
+  onClick, 
+  icon, 
+  label, 
+  showLabel = true,
+  title,
+}: { 
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  label?: string;
+  showLabel?: boolean;
+  title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title || label}
+      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 transition-all duration-150 relative"
+      style={{
+        background: active ? theme.colors.bgSecondary : 'transparent',
+        color: active ? theme.colors.textPrimary : theme.colors.textMuted,
+        fontFamily: theme.fonts.sans,
+        fontSize: theme.fontSize.sm,
+        fontWeight: active ? theme.fontWeight.medium : theme.fontWeight.normal,
+      }}
+    >
+      <span className="text-sm">{icon}</span>
+      {showLabel && label && <span className="hidden lg:inline">{label}</span>}
+      {active && (
+        <div 
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full"
+          style={{
+            width: '24px',
+            background: theme.colors.accent,
+            boxShadow: theme.shadows.glowSm,
+          }}
+        />
+      )}
+    </button>
   );
 }
 
@@ -155,45 +175,32 @@ function MobileNavToggle({
   onToggle: (panel: 'none' | 'categories' | 'recommendations') => void;
 }) {
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      display: 'flex',
-      gap: '10px',
-      padding: '12px 16px',
-      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-      background: theme.colors.bgPrimary,
-      borderTop: `1px solid ${theme.colors.border}`,
-      zIndex: 200,
-    }}>
+    <div 
+      className="fixed bottom-0 left-0 right-0 flex gap-2 p-3 safe-bottom z-50"
+      style={{
+        ...glassElevated,
+        borderTop: `1px solid ${theme.colors.border}`,
+        borderRadius: 0,
+      }}
+    >
       {[
-        { id: 'categories', label: 'Categories', icon: '📁' },
-        { id: 'recommendations', label: 'Recommend', icon: '🎯' },
+        { id: 'categories', label: 'Categories', icon: '◫' },
+        { id: 'recommendations', label: 'Recommend', icon: '◉' },
       ].map(({ id, label, icon }) => (
         <button
           key={id}
           onClick={() => onToggle(activePanel === id ? 'none' : id as 'categories' | 'recommendations')}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-all duration-150"
           style={{
-            flex: 1,
-            padding: '12px',
-            background: activePanel === id ? theme.colors.bgElevated : 'transparent',
+            background: activePanel === id ? theme.colors.bgSurface : 'transparent',
             border: `1px solid ${activePanel === id ? theme.colors.borderHover : theme.colors.border}`,
-            borderRadius: theme.radius.lg,
             color: activePanel === id ? theme.colors.textPrimary : theme.colors.textMuted,
+            fontFamily: theme.fonts.sans,
             fontSize: theme.fontSize.sm,
             fontWeight: theme.fontWeight.medium,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: theme.transitions.fast,
-            fontFamily: theme.fonts.sans,
           }}
         >
-          <span>{icon}</span>
+          <span className="text-base">{icon}</span>
           {label}
         </button>
       ))}
@@ -232,7 +239,6 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
     };
   }, [data]);
 
-  // Calculate health using new health score system
   const healthData = useMemo(() => {
     if (!data) return { averageScore: 0, averageGrade: 'F' as const };
     return calculateDashboardHealth(data.nodes);
@@ -240,7 +246,6 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   const healthScore = healthData.averageScore;
 
-  // Build tool dependency graph
   const toolGraph = useMemo(() => {
     if (!data) return { toolNodes: [], toolEdges: [] };
     return buildToolGraph(data.nodes);
@@ -282,12 +287,10 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   if (loading) return <LoadingScreen />;
   if (!data) return <LoadingScreen error="Failed to load skill data" />;
 
-  // Filter by category first
   let filteredNodes = selectedCategory
     ? data.nodes.filter(n => n.category === selectedCategory)
     : data.nodes;
   
-  // Then filter by search query
   if (searchQuery.trim()) {
     filteredNodes = filterSkillNodes(filteredNodes, searchQuery);
   }
@@ -308,242 +311,181 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   });
 
   return (
-    <div style={{ 
-      width: '100vw', 
-      height: '100vh', 
-      position: 'relative',
-      background: theme.colors.bgPrimary,
-      overflow: 'hidden',
-      fontFamily: theme.fonts.sans,
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* Header */}
-      <header style={{
-        height: isMobile ? '48px' : '52px',
-        padding: '0 16px',
-        borderBottom: `1px solid ${theme.colors.border}`,
-        background: theme.colors.bgSecondary,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        flexShrink: 0,
-      }}>
+    <div 
+      className="w-screen h-screen relative overflow-hidden flex flex-col"
+      style={{
+        background: theme.colors.bgPrimary,
+        fontFamily: theme.fonts.sans,
+      }}
+    >
+      {/* ═══════════════════════════════════════════════════════
+          HEADER - Glass morphism with refined layout
+      ═══════════════════════════════════════════════════════ */}
+      <header 
+        className="flex items-center gap-4 px-4 shrink-0 animate-slide-down"
+        style={{
+          height: isMobile ? '52px' : '56px',
+          ...glass,
+          borderRadius: 0,
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+        }}
+      >
         {/* Logo + Title */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}>
-          <span style={{ 
-            fontSize: '20px',
-            filter: 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.4))',
-          }}>⚔️</span>
-          <span style={{
-            fontSize: theme.fontSize.md,
-            fontWeight: theme.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            letterSpacing: '-0.02em',
-          }}>
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+            style={{
+              background: theme.colors.accentMuted,
+              boxShadow: theme.shadows.glowSm,
+            }}
+          >
+            ⚔️
+          </div>
+          <span 
+            className="text-base font-semibold tracking-tight"
+            style={{ color: theme.colors.textPrimary }}
+          >
             SkillRespec
           </span>
         </div>
 
         {/* Separator */}
-        <div style={{
-          width: '1px',
-          height: '20px',
-          background: theme.colors.border,
-        }} />
+        <div 
+          className="w-px h-5"
+          style={{ background: theme.colors.border }}
+        />
 
         {/* Analyze Button */}
         <button
           onClick={() => onNavigate('/analyze')}
+          className="px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:shadow-glow"
           style={{
-            padding: '7px 14px',
             background: `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`,
-            border: 'none',
-            borderRadius: theme.radius.full,
             color: theme.colors.bgPrimary,
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.semibold,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: theme.transitions.fast,
             fontFamily: theme.fonts.sans,
+            boxShadow: theme.shadows.glowSm,
           }}
         >
-          🔍 Analyze Your Skills
+          <span className="text-xs">◎</span>
+          Analyze Your Skills
         </button>
 
         {/* Search Bar */}
         {!isMobile && (
-          <SearchBar
-            onSearch={setSearchQuery}
-            onSelectSkill={(id) => {
-              const node = data.nodes.find(n => n.id === id);
-              if (node) setSelectedNode(node);
-            }}
-            placeholder="Search skills..."
-          />
+          <div className="flex-1 max-w-sm">
+            <SearchBar
+              onSearch={setSearchQuery}
+              onSelectSkill={(id) => {
+                const node = data.nodes.find(n => n.id === id);
+                if (node) setSelectedNode(node);
+              }}
+              placeholder="Search skills..."
+            />
+          </div>
         )}
 
         {/* Tools Toggle */}
         {!isMobile && (
           <button
             onClick={() => setShowTools(!showTools)}
+            className="px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-150"
             style={{
-              padding: '7px 12px',
-              background: showTools ? theme.colors.bgElevated : 'transparent',
+              background: showTools ? theme.colors.bgSurface : 'transparent',
               border: `1px solid ${showTools ? theme.colors.accent : theme.colors.border}`,
-              borderRadius: theme.radius.full,
               color: showTools ? theme.colors.accent : theme.colors.textMuted,
-              fontSize: theme.fontSize.sm,
-              fontWeight: theme.fontWeight.medium,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: theme.transitions.fast,
               fontFamily: theme.fonts.sans,
             }}
           >
-            🔧 Tools
+            <span className="text-xs">⚙</span>
+            Tools
           </button>
         )}
 
-        {/* Spacer (left) */}
-        <div style={{ flex: 1 }} />
+        {/* Spacer */}
+        <div className="flex-1" />
 
-        {/* View Mode Toggle (CENTERED) */}
+        {/* View Mode Toggle */}
         <ViewToggle mode={viewMode} onChange={setViewMode} />
 
-        {/* Spacer (right) */}
-        <div style={{ flex: 1 }} />
+        {/* Spacer */}
+        <div className="flex-1" />
 
-        {/* Target + Date (right side) */}
-        <span style={{
-          fontSize: theme.fontSize.sm,
-          color: theme.colors.textMuted,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <span style={{ 
-            color: theme.colors.textSecondary,
-            fontWeight: theme.fontWeight.medium,
-          }}>
+        {/* Target + Date */}
+        <div 
+          className="flex items-center gap-2 text-sm"
+          style={{ color: theme.colors.textMuted }}
+        >
+          <span 
+            className="font-medium"
+            style={{ color: theme.colors.textSecondary }}
+          >
             Demo
           </span>
           <span style={{ opacity: 0.4 }}>·</span>
-          <span>{dateStr}</span>
-        </span>
+          <span className="font-mono text-xs" style={{ color: theme.colors.textTertiary }}>
+            {dateStr}
+          </span>
+        </div>
       </header>
 
-      {/* Main Content */}
+      {/* ═══════════════════════════════════════════════════════
+          MAIN CONTENT
+      ═══════════════════════════════════════════════════════ */}
       {viewMode === '3d' ? (
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-          {/* Main 3-column area */}
-          <div style={{
-            flex: 1,
-            display: 'grid',
-            gridTemplateColumns: isDesktop 
-              ? '220px 1fr 340px' 
-              : isTablet 
-                ? '200px 1fr 300px' 
-                : '1fr',
-            overflow: 'hidden',
-            minHeight: 0,
-          }}>
-            {/* LEFT COLUMN: Categories / Health */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div 
+            className="flex-1 grid overflow-hidden min-h-0"
+            style={{
+              gridTemplateColumns: isDesktop 
+                ? '240px 1fr 360px' 
+                : isTablet 
+                  ? '220px 1fr 320px' 
+                  : '1fr',
+            }}
+          >
+            {/* ═══════════════════════════════════════════════════
+                LEFT COLUMN: Categories / Health / History
+            ═══════════════════════════════════════════════════ */}
             {!isMobile && (
-              <div style={{
-                background: theme.colors.bgSecondary,
-                borderRight: `1px solid ${theme.colors.border}`,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
+              <div 
+                className="overflow-hidden flex flex-col animate-slide-right"
+                style={{
+                  background: theme.colors.bgSecondary,
+                  borderRight: `1px solid ${theme.colors.border}`,
+                }}
+              >
                 {/* Tab Switcher */}
-                <div style={{
-                  display: 'flex',
-                  borderBottom: `1px solid ${theme.colors.border}`,
-                  background: theme.colors.bgTertiary,
-                }}>
-                  <button
+                <div 
+                  className="flex shrink-0"
+                  style={{
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    background: theme.colors.bgTertiary,
+                  }}
+                >
+                  <TabButton
+                    active={leftPanelTab === 'categories'}
                     onClick={() => setLeftPanelTab('categories')}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: leftPanelTab === 'categories' ? theme.colors.bgSecondary : 'transparent',
-                      border: 'none',
-                      borderBottom: leftPanelTab === 'categories' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                      color: leftPanelTab === 'categories' ? theme.colors.textPrimary : theme.colors.textMuted,
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.medium,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontFamily: theme.fonts.sans,
-                    }}
-                  >
-                    📁 Categories
-                  </button>
-                  <button
+                    icon="◫"
+                    label="Categories"
+                  />
+                  <TabButton
+                    active={leftPanelTab === 'health'}
                     onClick={() => setLeftPanelTab('health')}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: leftPanelTab === 'health' ? theme.colors.bgSecondary : 'transparent',
-                      border: 'none',
-                      borderBottom: leftPanelTab === 'health' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                      color: leftPanelTab === 'health' ? theme.colors.textPrimary : theme.colors.textMuted,
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.medium,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontFamily: theme.fonts.sans,
-                    }}
-                  >
-                    💊 Health
-                  </button>
-                  <button
+                    icon="◉"
+                    label="Health"
+                  />
+                  <TabButton
+                    active={leftPanelTab === 'history'}
                     onClick={() => setLeftPanelTab('history')}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: leftPanelTab === 'history' ? theme.colors.bgSecondary : 'transparent',
-                      border: 'none',
-                      borderBottom: leftPanelTab === 'history' ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                      color: leftPanelTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted,
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.medium,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontFamily: theme.fonts.sans,
-                    }}
-                  >
-                    ⏰ History
-                  </button>
+                    icon="◷"
+                    label="History"
+                  />
                 </div>
                 
                 {/* Tab Content */}
-                <div style={{ flex: 1, overflow: 'auto' }}>
+                <div className="flex-1 overflow-auto">
                   {leftPanelTab === 'categories' ? (
                     <CategoryLegend 
                       clusters={data.clusters}
@@ -558,7 +500,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                       selectedNode={selectedNode}
                     />
                   ) : leftPanelTab === 'health' ? (
-                    <div style={{ padding: '12px' }}>
+                    <div className="p-3">
                       <HealthDashboard nodes={data.nodes} />
                     </div>
                   ) : (
@@ -568,16 +510,15 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
               </div>
             )}
             
-            {/* CENTER COLUMN: 3D Canvas + Info Panel */}
-            <div style={{
-              position: 'relative',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              paddingBottom: isMobile ? '56px' : 0,
-            }}>
+            {/* ═══════════════════════════════════════════════════
+                CENTER COLUMN: 3D Canvas + Info Panel
+            ═══════════════════════════════════════════════════ */}
+            <div 
+              className="relative overflow-hidden flex flex-col"
+              style={{ paddingBottom: isMobile ? '60px' : 0 }}
+            >
               {/* 3D Canvas Area */}
-              <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+              <div className="flex-1 relative overflow-hidden min-h-0">
                 <Canvas
                   camera={{ position: [0, 0, isMobile ? 30 : 25], fov: isMobile ? 70 : 60 }}
                   gl={{ antialias: true, alpha: false }}
@@ -614,7 +555,6 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                       hoveredNode={hoveredNode}
                     />
                     
-                    {/* Tool Dependency Nodes */}
                     {showTools && (
                       <>
                         <ToolNodes 
@@ -648,31 +588,23 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
                 
                 {/* Footer hint */}
                 {!isMobile && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    gap: '20px',
-                    padding: '8px 16px',
-                    background: 'rgba(5, 5, 5, 0.8)',
-                    backdropFilter: 'blur(8px)',
-                    borderRadius: theme.radius.full,
-                    border: `1px solid ${theme.colors.border}`,
-                    fontSize: theme.fontSize.xs,
-                    color: theme.colors.textMuted,
-                  }}>
+                  <div 
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 px-4 py-2 rounded-full text-xs"
+                    style={{
+                      ...glass,
+                      color: theme.colors.textMuted,
+                    }}
+                  >
                     <span>Drag to rotate</span>
-                    <span style={{ opacity: 0.4 }}>•</span>
+                    <span style={{ opacity: 0.3 }}>•</span>
                     <span>Scroll to zoom</span>
-                    <span style={{ opacity: 0.4 }}>•</span>
+                    <span style={{ opacity: 0.3 }}>•</span>
                     <span>Click for details</span>
                   </div>
                 )}
               </div>
               
-              {/* Info Panel - Inside center column */}
+              {/* Info Panel */}
               {!isMobile && (
                 <InfoPanel 
                   node={selectedNode || hoveredNode}
@@ -685,62 +617,49 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
               )}
             </div>
             
-            {/* RIGHT COLUMN: Recommendations / AI / Marketplace / Presets / Lint / Team / Analytics */}
+            {/* ═══════════════════════════════════════════════════
+                RIGHT COLUMN: Multi-tab panel
+            ═══════════════════════════════════════════════════ */}
             {(isDesktop || isTablet) && (
-              <div style={{
-                background: theme.colors.bgSecondary,
-                borderLeft: `1px solid ${theme.colors.border}`,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
-                {/* Tab Switcher */}
-                <div style={{
-                  display: 'flex',
-                  borderBottom: `1px solid ${theme.colors.border}`,
-                  background: theme.colors.bgTertiary,
-                  flexShrink: 0,
-                  overflowX: 'auto',
-                }}>
+              <div 
+                className="overflow-hidden flex flex-col animate-slide-left"
+                style={{
+                  background: theme.colors.bgSecondary,
+                  borderLeft: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                {/* Tab Switcher - Scrollable icons */}
+                <div 
+                  className="flex shrink-0 overflow-x-auto"
+                  style={{
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    background: theme.colors.bgTertiary,
+                  }}
+                >
                   {[
-                    { id: 'recommend', label: '🎯', title: 'Recommendations' },
-                    { id: 'ai', label: '🤖', title: 'AI Recommendations' },
-                    { id: 'marketplace', label: '🏪', title: 'Marketplace' },
-                    { id: 'presets', label: '🎛️', title: 'Presets' },
-                    { id: 'lint', label: '🔍', title: 'Lint' },
-                    { id: 'team', label: '👥', title: 'Team Sync' },
-                    { id: 'analytics', label: '📊', title: 'Analytics' },
-                    { id: 'updates', label: '🔄', title: 'Updates' },
-                    { id: 'create', label: '🛠️', title: 'Create Skill' },
-                  ].map(({ id, label, title }) => (
-                    <button
+                    { id: 'recommend', icon: '◎', title: 'Recommendations' },
+                    { id: 'ai', icon: '⬡', title: 'AI Recommendations' },
+                    { id: 'marketplace', icon: '◈', title: 'Marketplace' },
+                    { id: 'presets', icon: '≡', title: 'Presets' },
+                    { id: 'lint', icon: '⊙', title: 'Lint' },
+                    { id: 'team', icon: '◔', title: 'Team Sync' },
+                    { id: 'analytics', icon: '▤', title: 'Analytics' },
+                    { id: 'updates', icon: '↻', title: 'Updates' },
+                    { id: 'create', icon: '✚', title: 'Create Skill' },
+                  ].map(({ id, icon, title }) => (
+                    <TabButton
                       key={id}
+                      active={rightPanelTab === id}
                       onClick={() => setRightPanelTab(id as typeof rightPanelTab)}
+                      icon={icon}
                       title={title}
-                      style={{
-                        flex: 1,
-                        minWidth: '40px',
-                        padding: '10px 6px',
-                        background: rightPanelTab === id ? theme.colors.bgSecondary : 'transparent',
-                        border: 'none',
-                        borderBottom: rightPanelTab === id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                        color: rightPanelTab === id ? theme.colors.textPrimary : theme.colors.textMuted,
-                        fontSize: theme.fontSize.md,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: theme.fonts.sans,
-                        transition: theme.transitions.fast,
-                      }}
-                    >
-                      {label}
-                    </button>
+                      showLabel={false}
+                    />
                   ))}
                 </div>
 
                 {/* Tab Content */}
-                <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div className="flex-1 overflow-hidden">
                   {rightPanelTab === 'recommend' && <RecommendationsPanel embedded />}
                   {rightPanelTab === 'ai' && <AIRecommendations nodes={data.nodes} embedded />}
                   {rightPanelTab === 'marketplace' && <MarketplacePanel installedSkills={data.nodes} embedded />}
@@ -757,13 +676,7 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
           
           {/* Mobile: Info panel above nav */}
           {isMobile && (selectedNode || hoveredNode) && (
-            <div style={{
-              position: 'fixed',
-              bottom: '56px',
-              left: 0,
-              right: 0,
-              zIndex: 100,
-            }}>
+            <div className="fixed bottom-16 left-0 right-0 z-40">
               <InfoPanel 
                 node={selectedNode || hoveredNode}
                 allNodes={data.nodes}
@@ -777,18 +690,13 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
           
           {/* Mobile Panels */}
           {isMobile && mobilePanel === 'categories' && (
-            <div style={{
-              position: 'fixed',
-              bottom: '56px',
-              left: 0,
-              right: 0,
-              background: theme.colors.bgSecondary,
-              borderTop: `1px solid ${theme.colors.border}`,
-              maxHeight: '50vh',
-              overflowY: 'auto',
-              zIndex: 150,
-              borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
-            }}>
+            <div 
+              className="fixed bottom-16 left-0 right-0 max-h-[50vh] overflow-y-auto z-40 animate-slide-up"
+              style={{
+                ...glassElevated,
+                borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
+              }}
+            >
               <CategoryLegend 
                 clusters={data.clusters}
                 selectedCategory={selectedCategory}
@@ -802,18 +710,13 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
           )}
           
           {isMobile && mobilePanel === 'recommendations' && (
-            <div style={{
-              position: 'fixed',
-              bottom: '56px',
-              left: 0,
-              right: 0,
-              background: theme.colors.bgSecondary,
-              borderTop: `1px solid ${theme.colors.border}`,
-              maxHeight: '60vh',
-              overflowY: 'auto',
-              zIndex: 150,
-              borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
-            }}>
+            <div 
+              className="fixed bottom-16 left-0 right-0 max-h-[60vh] overflow-y-auto z-40 animate-slide-up"
+              style={{
+                ...glassElevated,
+                borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
+              }}
+            >
               <RecommendationsPanel position="mobile" />
             </div>
           )}
@@ -827,11 +730,10 @@ function DemoPage({ onNavigate }: { onNavigate: (path: string) => void }) {
         </div>
       ) : (
         /* REPORT MODE */
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          background: theme.colors.bgPrimary,
-        }}>
+        <div 
+          className="flex-1 overflow-auto"
+          style={{ background: theme.colors.bgPrimary }}
+        >
           <ReportView data={data} healthScore={healthScore} />
         </div>
       )}
