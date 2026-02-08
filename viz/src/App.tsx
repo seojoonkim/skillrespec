@@ -7,7 +7,7 @@ import InfoPanel from './components/InfoPanel';
 import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
-import DiagnosticReportModal from './components/DiagnosticReportModal';
+// DiagnosticReportModal removed - now inline in ReportView
 import ReportView from './components/ReportView';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
@@ -185,7 +185,6 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'categories' | 'recommendations'>('none');
-  const [showReport, setShowReport] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   
   const { isMobile, isTablet, isDesktop } = useWindowSize();
@@ -571,17 +570,9 @@ export default function App() {
           overflow: 'auto',
           background: theme.colors.bgPrimary,
         }}>
-          <ReportView data={data} onOpenFullReport={() => setShowReport(true)} />
+          <ReportView data={data} healthScore={healthScore} />
         </div>
       )}
-      
-      {/* Report Modal */}
-      <DiagnosticReportModal
-        isOpen={showReport}
-        onClose={() => setShowReport(false)}
-        data={data}
-        healthScore={healthScore}
-      />
     </div>
   );
 }
