@@ -7,7 +7,6 @@ import InfoPanel from './components/InfoPanel';
 import CategoryLegend from './components/CategoryLegend';
 import RecommendationsPanel from './components/RecommendationsPanel';
 import LoadingScreen from './components/LoadingScreen';
-// DiagnosticReportModal removed - now inline in ReportView
 import ReportView from './components/ReportView';
 import { useWindowSize } from './hooks/useWindowSize';
 import { theme } from './styles/theme';
@@ -20,7 +19,7 @@ import { generateDemoData } from './data/demoData';
 type ViewMode = '3d' | 'report';
 
 // ═══════════════════════════════════════════════════════════
-// View Toggle Component (for center column)
+// View Toggle Component - Modern pill style
 // ═══════════════════════════════════════════════════════════
 function ViewToggle({ 
   mode, 
@@ -32,44 +31,55 @@ function ViewToggle({
   return (
     <div style={{
       display: 'flex',
-      background: 'rgba(255,255,255,0.03)',
-      borderRadius: '24px',
-      padding: '4px',
-      border: '1px solid rgba(255,255,255,0.06)',
-      backdropFilter: 'blur(8px)',
+      background: theme.colors.bgTertiary,
+      borderRadius: theme.radius.full,
+      padding: '3px',
+      border: `1px solid ${theme.colors.border}`,
     }}>
       <button
         onClick={() => onChange('3d')}
         style={{
-          padding: '10px 28px',
-          background: mode === '3d' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          padding: '7px 14px',
+          background: mode === '3d' 
+            ? `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`
+            : 'transparent',
           border: 'none',
-          borderRadius: '20px',
-          color: mode === '3d' ? '#fff' : 'rgba(255,255,255,0.4)',
-          fontSize: '13px',
-          fontWeight: 500,
-          letterSpacing: '0.02em',
+          borderRadius: theme.radius.full,
+          color: mode === '3d' ? theme.colors.bgPrimary : theme.colors.textMuted,
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
           cursor: 'pointer',
-          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: theme.transitions.fast,
+          fontFamily: theme.fonts.sans,
         }}
       >
+        <span style={{ fontSize: '12px' }}>🌐</span>
         Graph
       </button>
       <button
         onClick={() => onChange('report')}
         style={{
-          padding: '10px 28px',
-          background: mode === 'report' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          padding: '7px 14px',
+          background: mode === 'report'
+            ? `linear-gradient(135deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`
+            : 'transparent',
           border: 'none',
-          borderRadius: '20px',
-          color: mode === 'report' ? '#fff' : 'rgba(255,255,255,0.4)',
-          fontSize: '13px',
-          fontWeight: 500,
-          letterSpacing: '0.02em',
+          borderRadius: theme.radius.full,
+          color: mode === 'report' ? theme.colors.bgPrimary : theme.colors.textMuted,
+          fontSize: theme.fontSize.sm,
+          fontWeight: theme.fontWeight.semibold,
           cursor: 'pointer',
-          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: theme.transitions.fast,
+          fontFamily: theme.fonts.sans,
         }}
       >
+        <span style={{ fontSize: '12px' }}>📋</span>
         Report
       </button>
     </div>
@@ -93,30 +103,40 @@ function MobileNavToggle({
       left: 0,
       right: 0,
       display: 'flex',
-      gap: '8px',
+      gap: '10px',
       padding: '12px 16px',
       paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
       background: theme.colors.bgPrimary,
       borderTop: `1px solid ${theme.colors.border}`,
       zIndex: 200,
     }}>
-      {['categories', 'recommendations'].map((id) => (
+      {[
+        { id: 'categories', label: 'Categories', icon: '📁' },
+        { id: 'recommendations', label: 'Recommend', icon: '🎯' },
+      ].map(({ id, label, icon }) => (
         <button
           key={id}
           onClick={() => onToggle(activePanel === id ? 'none' : id as 'categories' | 'recommendations')}
           style={{
             flex: 1,
             padding: '12px',
-            background: activePanel === id ? theme.colors.bgSecondary : 'transparent',
-            border: `1px solid ${activePanel === id ? theme.colors.border : 'transparent'}`,
-            borderRadius: theme.radius.md,
+            background: activePanel === id ? theme.colors.bgElevated : 'transparent',
+            border: `1px solid ${activePanel === id ? theme.colors.borderHover : theme.colors.border}`,
+            borderRadius: theme.radius.lg,
             color: activePanel === id ? theme.colors.textPrimary : theme.colors.textMuted,
             fontSize: theme.fontSize.sm,
             fontWeight: theme.fontWeight.medium,
             cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: theme.transitions.fast,
+            fontFamily: theme.fonts.sans,
           }}
         >
-          {id === 'categories' ? 'Categories' : 'Recommend'}
+          <span>{icon}</span>
+          {label}
         </button>
       ))}
     </div>
@@ -163,7 +183,6 @@ export default function App() {
         const response = await fetch('/viz-data.json');
         if (response.ok) {
           const json = await response.json();
-          // Normalize colors to use theme.categoryColors as single source of truth
           const normalizedData: VizData = {
             ...json,
             nodes: json.nodes.map((node: SkillNode) => ({
@@ -225,60 +244,74 @@ export default function App() {
       flexDirection: 'column',
     }}>
       {/* ═══════════════════════════════════════════════════════════
-          COMPACT HEADER (single line with integrated tabs)
+          HEADER - Compact & Modern
       ═══════════════════════════════════════════════════════════ */}
       <header style={{
-        height: isMobile ? '40px' : '44px',
-        padding: '0 12px',
+        height: isMobile ? '48px' : '52px',
+        padding: '0 16px',
         borderBottom: `1px solid ${theme.colors.border}`,
         background: theme.colors.bgSecondary,
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '16px',
         flexShrink: 0,
       }}>
         {/* Logo + Title */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '10px',
         }}>
-          <span style={{ fontSize: '16px' }}>⚔️</span>
+          <span style={{ 
+            fontSize: '20px',
+            filter: 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.4))',
+          }}>⚔️</span>
           <span style={{
-            fontSize: theme.fontSize.sm,
+            fontSize: theme.fontSize.md,
             fontWeight: theme.fontWeight.bold,
             color: theme.colors.textPrimary,
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.02em',
           }}>
             SkillRespec
           </span>
         </div>
 
-        {/* Spacer (left) */}
-        <div style={{ flex: 1 }} />
+        {/* Separator */}
+        <div style={{
+          width: '1px',
+          height: '20px',
+          background: theme.colors.border,
+        }} />
 
-        {/* View Mode Toggle (centered) */}
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
-
-        {/* Spacer (right) */}
-        <div style={{ flex: 1 }} />
-
-        {/* Target + Date (right side) */}
+        {/* Target + Date */}
         <span style={{
-          fontSize: theme.fontSize.xs,
+          fontSize: theme.fontSize.sm,
           color: theme.colors.textMuted,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
         }}>
-          <span style={{ color: theme.colors.textSecondary }}>Simon</span>
-          <span style={{ margin: '0 4px', opacity: 0.5 }}>·</span>
-          {dateStr}
+          <span style={{ 
+            color: theme.colors.textSecondary,
+            fontWeight: theme.fontWeight.medium,
+          }}>
+            Simon
+          </span>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span>{dateStr}</span>
         </span>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* View Mode Toggle */}
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA - Conditional Layout based on viewMode
+          MAIN CONTENT AREA
       ═══════════════════════════════════════════════════════════ */}
       {viewMode === '3d' ? (
-        /* 3D MODE: Grid layout with bottom panel */
         <div style={{
           flex: 1,
           display: 'flex',
@@ -290,9 +323,9 @@ export default function App() {
             flex: 1,
             display: 'grid',
             gridTemplateColumns: isDesktop 
-              ? '200px 1fr 320px' 
+              ? '220px 1fr 340px' 
               : isTablet 
-                ? '180px 1fr 280px' 
+                ? '200px 1fr 300px' 
                 : '1fr',
             overflow: 'hidden',
             minHeight: 0,
@@ -335,17 +368,18 @@ export default function App() {
                   dpr={[1, 2]}
                 >
                   <Suspense fallback={null}>
-                    <ambientLight intensity={0.6} />
-                    <pointLight position={[10, 10, 10]} intensity={0.4} />
+                    <ambientLight intensity={0.5} />
+                    <pointLight position={[10, 10, 10]} intensity={0.3} />
+                    <pointLight position={[-10, -10, -10]} intensity={0.2} color="#22d3ee" />
                     
                     <Stars 
                       radius={100} 
                       depth={50} 
-                      count={isMobile ? 1000 : 2000} 
-                      factor={2} 
+                      count={isMobile ? 1000 : 2500} 
+                      factor={2.5} 
                       saturation={0} 
                       fade 
-                      speed={0.3}
+                      speed={0.2}
                     />
                     
                     <SkillNodes 
@@ -368,7 +402,7 @@ export default function App() {
                       enableZoom
                       enableRotate
                       autoRotate={!selectedNode && !hoveredNode}
-                      autoRotateSpeed={0.2}
+                      autoRotateSpeed={0.15}
                       maxDistance={isMobile ? 60 : 50}
                       minDistance={isMobile ? 10 : 5}
                       dampingFactor={0.05}
@@ -378,22 +412,27 @@ export default function App() {
                   </Suspense>
                 </Canvas>
                 
-                {/* Footer hint - now above the bottom panel */}
+                {/* Footer hint */}
                 {!isMobile && (
                   <div style={{
                     position: 'absolute',
-                    bottom: '12px',
+                    bottom: '16px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     display: 'flex',
-                    gap: '24px',
+                    gap: '20px',
+                    padding: '8px 16px',
+                    background: 'rgba(5, 5, 5, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    borderRadius: theme.radius.full,
+                    border: `1px solid ${theme.colors.border}`,
                     fontSize: theme.fontSize.xs,
                     color: theme.colors.textMuted,
                   }}>
                     <span>Drag to rotate</span>
-                    <span>•</span>
+                    <span style={{ opacity: 0.4 }}>•</span>
                     <span>Scroll to zoom</span>
-                    <span>•</span>
+                    <span style={{ opacity: 0.4 }}>•</span>
                     <span>Click for details</span>
                   </div>
                 )}
@@ -414,7 +453,7 @@ export default function App() {
             )}
           </div>
           
-          {/* BOTTOM PANEL: Skill Info (fixed height, full width) */}
+          {/* BOTTOM PANEL: Skill Info */}
           {!isMobile && (
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <InfoPanel 
@@ -460,6 +499,7 @@ export default function App() {
               maxHeight: '50vh',
               overflowY: 'auto',
               zIndex: 150,
+              borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
             }}>
               <CategoryLegend 
                 clusters={data.clusters}
@@ -484,6 +524,7 @@ export default function App() {
               maxHeight: '60vh',
               overflowY: 'auto',
               zIndex: 150,
+              borderRadius: `${theme.radius.xl} ${theme.radius.xl} 0 0`,
             }}>
               <RecommendationsPanel position="mobile" />
             </div>
@@ -497,7 +538,7 @@ export default function App() {
           )}
         </div>
       ) : (
-        /* REPORT MODE: Full width ReportView */
+        /* REPORT MODE */
         <div style={{
           flex: 1,
           overflow: 'auto',

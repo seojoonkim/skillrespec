@@ -18,29 +18,61 @@ export default function LoadingScreen({ error }: LoadingScreenProps) {
       fontFamily: theme.fonts.sans,
     }}>
       {error ? (
-        <>
+        <div style={{
+          textAlign: 'center',
+          padding: '32px',
+          background: theme.colors.bgSecondary,
+          borderRadius: theme.radius.lg,
+          border: `1px solid ${theme.colors.border}`,
+          maxWidth: '400px',
+        }}>
+          <span style={{ 
+            fontSize: '48px',
+            display: 'block',
+            marginBottom: '16px',
+          }}>
+            ⚠️
+          </span>
           <h1 style={{ 
             fontSize: theme.fontSize.xl, 
-            marginBottom: '8px',
+            marginBottom: '12px',
             fontWeight: theme.fontWeight.semibold,
+            color: theme.colors.error,
           }}>
-            Error
+            Something went wrong
           </h1>
-          <p style={{ color: theme.colors.textMuted }}>{error}</p>
-        </>
+          <p style={{ 
+            color: theme.colors.textMuted,
+            fontSize: theme.fontSize.sm,
+            margin: 0,
+          }}>
+            {error}
+          </p>
+        </div>
       ) : (
         <>
+          {/* Logo */}
           <div style={{ 
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            marginBottom: '24px',
+            gap: '16px',
+            marginBottom: '32px',
           }}>
-            <span style={{ fontSize: '24px' }}>⚔️</span>
+            <span style={{ 
+              fontSize: '40px',
+              filter: 'drop-shadow(0 0 12px rgba(34, 211, 238, 0.4))',
+            }}>
+              ⚔️
+            </span>
             <h1 style={{ 
-              fontSize: theme.fontSize.xxl, 
-              fontWeight: theme.fontWeight.semibold,
+              fontSize: theme.fontSize.xxxl, 
+              fontWeight: theme.fontWeight.bold,
               margin: 0,
+              letterSpacing: '-0.03em',
+              background: `linear-gradient(135deg, ${theme.colors.textPrimary}, ${theme.colors.accent})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}>
               SkillRespec
             </h1>
@@ -48,26 +80,49 @@ export default function LoadingScreen({ error }: LoadingScreenProps) {
           
           <p style={{ 
             color: theme.colors.textMuted,
-            fontSize: theme.fontSize.sm,
-            marginBottom: '24px',
+            fontSize: theme.fontSize.md,
+            marginBottom: '32px',
+            letterSpacing: '0.02em',
           }}>
-            Loading skills...
+            Analyzing your skill tree...
           </p>
           
-          {/* Simple loading bar */}
+          {/* Loading animation */}
           <div style={{
-            width: '200px',
-            height: '2px',
-            background: theme.colors.border,
-            borderRadius: '1px',
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+          }}>
+            {[0, 1, 2].map(i => (
+              <div
+                key={i}
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: theme.colors.accent,
+                  animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Animated bar */}
+          <div style={{
+            width: '240px',
+            height: '3px',
+            background: theme.colors.bgTertiary,
+            borderRadius: theme.radius.full,
             overflow: 'hidden',
+            marginTop: '32px',
           }}>
             <div style={{
               width: '40%',
               height: '100%',
-              background: theme.colors.accent,
-              borderRadius: '1px',
-              animation: 'loading 1.2s ease-in-out infinite',
+              background: `linear-gradient(90deg, ${theme.colors.accentSecondary}, ${theme.colors.accent})`,
+              borderRadius: theme.radius.full,
+              animation: 'loading 1.5s ease-in-out infinite',
+              boxShadow: `0 0 10px ${theme.colors.accentGlow}`,
             }} />
           </div>
         </>
@@ -77,6 +132,16 @@ export default function LoadingScreen({ error }: LoadingScreenProps) {
         @keyframes loading {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(350%); }
+        }
+        @keyframes pulse {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% { 
+            transform: scale(0.7);
+            opacity: 0.5;
+          }
         }
       `}</style>
     </div>
