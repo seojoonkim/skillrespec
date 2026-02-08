@@ -371,12 +371,16 @@ export default function App() {
       </header>
 
       {/* ═══════════════════════════════════════════════════════════
-          MAIN CONTENT AREA - 3 Column Layout (Desktop)
+          MAIN CONTENT AREA - 3 Column Layout (Desktop + Tablet)
       ═══════════════════════════════════════════════════════════ */}
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: isDesktop ? '200px 1fr 320px' : isTablet ? '180px 1fr' : '1fr',
+        gridTemplateColumns: isDesktop 
+          ? '200px 1fr 320px' 
+          : isTablet 
+            ? '160px 1fr 260px' 
+            : '1fr',
         overflow: 'hidden',
       }}>
         {viewMode === '3d' ? (
@@ -487,8 +491,8 @@ export default function App() {
               )}
             </div>
             
-            {/* RIGHT COLUMN: Recommendations (Desktop only) */}
-            {isDesktop && (
+            {/* RIGHT COLUMN: Recommendations (Desktop + Tablet) */}
+            {(isDesktop || isTablet) && (
               <div style={{
                 background: theme.colors.bgSecondary,
                 borderLeft: `1px solid ${theme.colors.border}`,
@@ -497,22 +501,6 @@ export default function App() {
                 flexDirection: 'column',
               }}>
                 <RecommendationsPanel embedded />
-              </div>
-            )}
-            
-            {/* Tablet: Recommendations at bottom */}
-            {isTablet && (
-              <div style={{
-                position: 'fixed',
-                bottom: 0,
-                left: '180px',
-                right: 0,
-                height: '180px',
-                background: theme.colors.bgSecondary,
-                borderTop: `1px solid ${theme.colors.border}`,
-                zIndex: 100,
-              }}>
-                <RecommendationsPanel position="bottom" embedded />
               </div>
             )}
             
